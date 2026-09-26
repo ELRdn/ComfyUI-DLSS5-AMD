@@ -1,0 +1,9 @@
+{
+  "python_3_10_syntax_parse": "passed (not a Python 3.10 runtime test)",
+  "source_python_files_parsed": 29,
+  "python_wheel_build": "passed, no network and no dependency installation",
+  "full_comfyui_server_browser": "NOT_RUN",
+  "windows_build": "NOT_RUN",
+  "gpu_inference": "NOT_RUN",
+  "report_browser_validation": "evidence/report-validation.json"
+}

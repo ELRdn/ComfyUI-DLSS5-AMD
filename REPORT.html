@@ -1,0 +1,541 @@
+<!doctype html><html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'">
+<title>ComfyUI × AMD Neural Rendering — 調査・実装報告</title>
+<style>
+:root{color-scheme:light;--ink:#182238;--muted:#536179;--paper:#f3f5fa;--line:#dbe1ef;--accent:#5745ca}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,"Noto Sans CJK JP","Yu Gothic",sans-serif;line-height:1.85;font-size:16px}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:3px}header{background:#151c30;color:#fff;padding:60px max(24px,calc((100vw - 1120px)/2)) 42px}
+header .eyebrow{color:#c5b9ff;font-weight:700;letter-spacing:.15em;font-size:12px}header h1{font-size:clamp(26px,4.4vw,48px);line-height:1.35;letter-spacing:-.03em;margin:16px 0}header p{max-width:800px;color:#d5dbec}
+nav{display:flex;gap:24px;flex-wrap:wrap;margin-top:28px}nav a{color:#e3ddff;font-size:14px}.wrap{max-width:1120px;margin:auto;padding:0 24px 80px}
+.status{background:#fff6dc;border:1px solid #eacb72;border-radius:12px;padding:20px 24px;margin:30px 0;color:#503c11}.stats{display:flex;flex-wrap:wrap;gap:12px;margin:24px 0}.stat{flex:1;min-width:170px;background:#fff;border:1px solid var(--line);padding:18px 22px;border-radius:12px}.stat strong{display:block;font-size:30px;line-height:1.25}.stat span{font-size:13px;color:var(--muted)}
+.chapter{background:#fff;border:1px solid var(--line);border-radius:16px;margin-top:28px;padding:clamp(22px,4vw,52px);overflow-wrap:anywhere}.kicker{color:var(--accent);font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:24px}
+h1,h2,h3{line-height:1.5;letter-spacing:-.02em;scroll-margin-top:24px}h1{font-size:30px;margin-top:0}h2{font-size:24px;margin-top:48px;padding-top:20px;border-top:1px solid var(--line)}h3{font-size:19px;margin-top:28px}p{margin:16px 0}li{margin:6px 0}pre{background:#f2f4fa;border:1px solid var(--line);border-radius:8px;padding:20px;overflow:auto;line-height:1.6;font-size:13px}code{font-family:ui-monospace,Consolas,monospace;font-size:.9em}p code,td code{background:#f1f2f9;padding:2px 5px;border-radius:3px}
+table{display:block;width:100%;overflow-x:auto;border-collapse:collapse;margin:22px 0;font-size:14px}th,td{border:1px solid var(--line);padding:12px 14px;vertical-align:top;min-width:140px}th{background:#edeafa;color:#302864;text-align:left}hr{border:0;border-top:1px solid var(--line);margin:32px 0}blockquote{border-left:4px solid var(--accent);margin-left:0;padding:0 20px;color:var(--muted)}footer{color:var(--muted);font-size:13px;padding:30px 0}
+@media(max-width:600px){body{font-size:15px}header{padding:36px 24px}h1{font-size:25px}h2{font-size:21px}.wrap{padding:0 14px 40px}.chapter{padding:22px 18px}.stat{min-width:130px}.status{padding:18px}nav{gap:14px}}
+@media print{body{background:#fff}header{padding:20px;color:#111;background:#fff}header p,header .eyebrow,nav a{color:#333}.wrap{padding:0}.chapter{border:0;padding:0;break-before:page}a{color:#222}pre,table{overflow:visible}h2,h3{break-after:avoid}.stats,.status{break-inside:avoid}}
+</style></head><body><header><div class="eyebrow">RESEARCH + IMPLEMENTATION / 2026.09.25</div>
+<h1>ComfyUI × AMD<br>Neural Rendering</h1><p>RX 9070 XT 向けの接続基盤、調査結果、実装証拠、そして実機検証に進むためのロードマップ。</p>
+<nav><a href="#report">調査・実装</a><a href="#roadmap">ロードマップ</a><a href="#sources">一次資料</a></nav></header><main class="wrap">
+<div class="status"><strong>現在の状態：開発用ブリッジ 0.1.0a1</strong><br>Python / CPU 契約テストは完了。Windows のビルド、RX 9070 XT での実推論、実 ComfyUI UI、画質・速度は未検証。外部 DLL・モデルは同梱していません。</div>
+<div class="stats"><div class="stat"><strong>170</strong><span>自動テスト / failure 0 / skip 0</span></div><div class="stat"><strong>7</strong><span>ComfyUI ノード</span></div><div class="stat"><strong>3</strong><span>サンプル workflow ＋ API 形式</span></div><div class="stat"><strong>未検証</strong><span>実 GPU 推論・品質</span></div></div><section class="chapter" id="report"><div class="kicker">調査・実装レポート</div><h1>ComfyUI × AMD Neural Rendering</h1>
+<h2>調査・実装レポート</h2>
+<p><strong>対象:</strong> Windows / Radeon RX 9070 XT で、ComfyUI の画像・動画に DLSS 5 Neural Rendering 系の処理を接続する。<br />
+<strong>調査基準日:</strong> 2026-09-25<br />
+<strong>成果物:</strong> <code>ComfyUI-DLSS5-AMD</code> v0.1.0a1、テスト、ワークフロー、ロードマップ。<br />
+<strong>現状:</strong> 外部 GPU ホストへの接続実装と CPU 検証を完了。実 GPU 推論・画質評価は未実施。</p>
+<hr />
+<h2>1. 結論</h2>
+<p>最初に作るべきなのは、ニューラルネットワーク自体の再実装ではなく、<strong>既存 AMD ネイティブホストを、失敗検出と実行証拠つきで ComfyUI に接続する薄いブリッジ</strong>である。</p>
+<p>今回、その接続部分を実装した。採用候補の外部ホストは <code>eikkapine/DLSS5-AMD-Video</code>。公開されている RGBA8 入出力、フレーム単位の処理、完了レポートが比較的明確だからである。ソースの基準コミットを <code>9303dfaa14c2ca83e237ff18318bdfc0b767f6fb</code> に固定した。[S02–S04]</p>
+<p>ただし、これは「すでに 9070 XT で画質が劇的に改善する ComfyUI 製品が完成した」という報告ではない。こちらの環境は Linux・CPU のみであり、Windows/D3D12/HIP の実行、利用者の GPU、正当な権限を持つランタイムを組み合わせた検証は残っている。対応ファイルがない状態では、ノードは理由を示して停止する。</p>
+<p>初期方針は次の分離である。</p>
+<pre><code class="language-text">画像の質感・照明の再構成       画像の縦横ピクセル数の増加
+Neural Rendering (NR)    →    別の超解像・拡大工程
+</code></pre>
+<p>この二つを混同しないことが、開発と画質評価の前提となる。</p>
+<h2>2. 前の提案から訂正した点</h2>
+<table>
+<thead>
+<tr>
+  <th>以前の説明</th>
+  <th>今回の判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>AMD 版は実証段階をかなり越えている</td>
+  <td>プロジェクトごとに段階が違う。採用候補の動画ホストは実験的で、短い実行確認と画質保証は別</td>
+</tr>
+<tr>
+  <td>数ミリ秒の速度を ComfyUI でも期待できる</td>
+  <td>カーネル時間・ゲーム統合時間・オフライン全工程は比較条件が違う。今回の性能目標に転用しない</td>
+</tr>
+<tr>
+  <td>FSR4 を後につなげれば完成</td>
+  <td>ゲーム由来の補助入力を持たない画像／動画は別条件。初版には組み込まない</td>
+</tr>
+<tr>
+  <td>ONNX なら容易にそのまま使える</td>
+  <td>確認した公開モデルは固定 256×256 の静止画再構成で、入力色空間や実行環境の制約がある</td>
+</tr>
+<tr>
+  <td>AMD ComfyUI ノードは誰も完成させていない</td>
+  <td>今回の探索で検証可能な完成品を確認できなかった、まで。世界中に存在しないとは断定しない</td>
+</tr>
+<tr>
+  <td>一晩で v0.1</td>
+  <td>根拠のない所要時間の約束は撤回。実機テストを含む完了条件で管理する</td>
+</tr>
+</tbody>
+</table>
+<p>新しいリポジトリに価値があるのは「名前が空いている」からではなく、<strong>Windows/AMD 利用者が、何が動いたのか・何が未確認なのかを判断できる接続基盤</strong>を提供できるからである。</p>
+<h2>3. DLSS 5 NR は普通のアップスケーラーではない</h2>
+<p>NVIDIA の公式説明は、DLSS 5 を外観・照明・素材感を再構成するニューラルレンダリングとして扱い、Super Resolution、Frame Generation、Ray Reconstruction と独立して組み合わせられる機能として説明している。公式ゲーム統合では、ゲーム側の動きベクトルを利用した時間方向の安定化も説明されている。[S01]</p>
+<p>一方、画像生成後の PNG やエンコード済み動画には、通常、そのゲームエンジン由来の入力がない。本プロジェクトが接続する初期経路は <strong>color-only / stateless</strong> である。[S03]</p>
+<p>したがって、次の主張は行わない。</p>
+<p>「本ノードは公式 DLSS 5 の完全再現である」「ゲーム内のデモと同じ時間安定性がある」「ピクセルが変わったので画質が改善した」「ファイルサイズが増えたので細部が復元された」。</p>
+<p>動画編集用途では、顔・商品・ロゴ・文字・線画の形状維持も重要になる。写実感が増しても、商品形状や文字が変われば、その素材では不採用とする。これは今回の品質評価方針であり、実測済みの効果ではない。</p>
+<h2>4. 一次情報で確認した候補</h2>
+<table>
+<thead>
+<tr>
+  <th>候補</th>
+  <th>確認内容</th>
+  <th>初期採用判断</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>eikkapine/DLSS5-AMD-Video</td>
+  <td>Windows のファイル処理ホスト。RGBA8、外部ランタイム、フレームごとの完了レポート</td>
+  <td><strong>ブリッジ先として採用</strong>。GPU 本体は同梱せず、利用者環境で検証</td>
+</tr>
+<tr>
+  <td>danielblnc/DLSS-NR-on-AMD</td>
+  <td>AMD 向け HIP ランタイムを含むゲーム統合。作者は RX 9070 XT を検証対象と記載</td>
+  <td>選択した動画ホストの外部依存。独立した Comfy ノードとは扱わない</td>
+</tr>
+<tr>
+  <td>lmxxf/dlss5-on-amd-9070xt-porting</td>
+  <td>RDNA4/HIP 実装と、D3D12 オブジェクトを扱う C ABI</td>
+  <td><strong>後続の高速化候補</strong>。初版と互換な実行ファイルだと仮定しない</td>
+</tr>
+<tr>
+  <td>Blueforcer/ComfyUI-DLSS5-Enhancer</td>
+  <td>NVIDIA 向け D3D12/NGX ワーカー型 Comfy 実装</td>
+  <td>UX・プロセス分離の参考。ROCm へ Python の指定を変えるだけでは移植できない</td>
+</tr>
+<tr>
+  <td>taowen/dlss5-onnx</td>
+  <td>256×256・固定 batch 1・linear RGB の研究モデル。AMD の検証例は Linux/Radeon 890M</td>
+  <td>別研究枝。Windows/9070 XT の既成最適解とはしない</td>
+</tr>
+</tbody>
+</table>
+<p>[S02–S08, S11]</p>
+<p><code>lmxxf</code> の検索インデックスでは 0.29 が見える一方、取得した README では 2026-09-25 の 0.30 が記載されていた。検索結果の短い説明だけで最新版を固定せず、ファイル本体を優先した。[S05]</p>
+<p>なお、RH 系ノードの内部全体や、以前挙げた Vulkan の 6.2 / 10.7 / 23.5 ms という数値は、この実装の根拠として採用していない。直接確認できたコードと比較可能な測定に限定する。</p>
+<h2>5. 速度をどう解釈するか</h2>
+<p>動画ホスト作者の報告では、RX 9070 XT、1920×1080、120 フレームの 5 秒素材を扱い、全工程に 408.98 秒、約 3.41 秒／フレームを要した。特定の新しいランタイムと <code>fast-isolated</code> の組合せによる短い測定であり、こちらの測定ではない。[S02]</p>
+<p>重要なのは <strong>再生 FPS と処理 FPS の区別</strong>である。24 fps の動画を作るのに、各フレームの処理が数秒かかっても、完成動画の再生速度は 24 fps のままである。</p>
+<p>この経路は、フレームごとに子プロセスを分離して処理完了を確認する。ニューラルネット単体が高速でも、初期化・メモリ転送・同期・読み戻し・ディスク入出力を含む全工程は遅くなり得る。[S03]</p>
+<p>今回のブリッジは最終段を FFV1 の可逆圧縮に変更し、ハッシュ検査も追加している。作者の H.264 出力と全く同じ条件ではない。そのため、3.41 秒／フレームを本実装の性能値としても約束しない。</p>
+<h3>測定を分離する設計</h3>
+<table>
+<thead>
+<tr>
+  <th>指標</th>
+  <th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>起動・モデル初期化時間</td>
+  <td>cold start の負担</td>
+</tr>
+<tr>
+  <td>GPU 処理時間</td>
+  <td>実同期点で測定するニューラル処理部分</td>
+</tr>
+<tr>
+  <td>CPU→GPU→CPU の転送・同期</td>
+  <td>Python とネイティブの橋渡し負担</td>
+</tr>
+<tr>
+  <td>画像 1 枚の全工程時間</td>
+  <td>単画像の操作感</td>
+</tr>
+<tr>
+  <td>動画全工程時間／実フレーム数</td>
+  <td>実制作の throughput</td>
+</tr>
+<tr>
+  <td>ピーク VRAM / RAM / 一時ディスク</td>
+  <td>OOM と容量不足の回避</td>
+</tr>
+</tbody>
+</table>
+<p>本版で自動保存しているのは主として壁時計時間と処理記録である。GPU のイベント時間、実 VRAM、長時間メモリリークは未測定。ロードマップに追加した。</p>
+<h2>6. 実装したアーキテクチャ</h2>
+<pre><code class="language-text">ComfyUI IMAGE / CLI の SDR 画像
+    │ BHWC float、値域・形状・メモリ上限を確認
+    ▼
+原本の alpha を分離 ──────────────┐
+    │ RGB を RGBA8 に明示量子化       │
+    ▼                                │
+新規のローカル作業ディレクトリ         │
+    │ 固定パスの EXE/DLL/重みを SHA 検証 │
+    ▼                                │
+外部の dlss5_video_native.exe         │
+    │ Windows D3D12 + 外部 HIP runtime │
+    ▼                                │
+exit code / JSON / フレーム数 / サイズ検査
+    │                                │
+    ▼                                │
+原画像との差分を mix / mask で合成 ◀───┘
+    ▼
+ComfyUI IMAGE + 実行記録 JSON
+</code></pre>
+<p>ComfyUI の公式 IMAGE は <code>[B,H,W,C]</code>、MASK は <code>[B,H,W]</code> である。本コードは IMAGE の RGB に加え、CLI や一部ノード向けに RGBA も扱う。MASK の白を「適用」と定義し、LoadImage が返す反転 alpha と混同しない。[S09]</p>
+<h3>PyTorch/ROCm を破壊しない</h3>
+<p>本版は PyTorch 内に HIP カーネルを新しくロードするのではなく、別 EXE を呼ぶ。ComfyUI の Python・PyTorch と、Windows ネイティブホストの D3D12/HIP 依存を切り離す設計である。requirements に PyTorch を含めず、既存の GPU 用環境を置換しない。</p>
+<p>一方、外部プロセス化はクラッシュを隔離する助けにはなるが、悪意あるバイナリを安全にするサンドボックスではない。信頼済みローカルファイルのみを人間が設定する。</p>
+<h3>やっていないこと</h3>
+<p>ゲームへの注入、画面キャプチャ、セキュリティ設定変更、管理者権限要求、ドライバー更新、DLL／モデルの自動取得、画像のクラウド送信は行わない。処理失敗時に別のアップスケーラーへ黙って切り替える動作もない。</p>
+<h2>7. 色・解像度・透過・マスク</h2>
+<p>初版の転送は RGBA8。float32 の RGB を最近傍丸めで 8 bit にし、読み戻して合成する。量子化誤差が存在するため、CPU roundtrip でわずかに画素が変わっても画質改善ではない。</p>
+<p>GPU ホストのモデル内部 Scale と、出力解像度の倍率は別物。本版は元サイズを維持する。<code>mix</code> は原画像と処理結果の合成率であり、学習モデル内部の強度でもアップスケール率でもない。</p>
+<p>HDR、linear-light 動画、BT.2020 動画は明示的に拒否する。CLI の ICC つき静止画も、自動で正しい色変換をしたふりをせず、先に明示的な SDR/sRGB 変換を求める。ComfyUI の IMAGE には元の ICC 情報が必ずしも残らないので、ノード側で色域を自動検出できるとは主張しない。</p>
+<p>透過は原本の alpha を維持し、GPU には不透明 RGB として渡す。透明領域の RGB に定義済みの背景があるとは仮定しない。商品合成などは適切な背景・マスクを用いて評価する。</p>
+<p>既定のネイティブ入力範囲は幅 1920・高さ 1080 以下、両辺偶数かつ 16 以上。これは本ブリッジの慎重な初期設定であり、GPU の絶対的な上限ではない。縦長 1024×1280 のイラストは初期設定の範囲外となる。形を崩して自動縮小することはしない。</p>
+<h2>8. 動画の正しさ</h2>
+<p>動画では見た目だけでなく、フレームが入れ替わる・欠ける・音がずれる、という失敗を防ぐ必要がある。</p>
+<p>実装では FFprobe によりフレーム数・FPS・開始時刻・画面回転・色関連情報を調べ、フレームの実タイムスタンプが CFR の格子に収まるかも確認する。複数映像ストリーム、添付カバー画像、可変フレームレート、非対応の時刻オフセットは拒否する。</p>
+<p>短い素材を RGBA8 に展開し、指定枚数ずつ処理する。最終出力は FFV1/RGB8 の MKV。映像は意図しない非可逆圧縮を挟まず、音声は再エンコードせずコピーし、音声ペイロードの SHA-256 を比較する。</p>
+<p><strong>音声ペイロード一致は、音声タイムスタンプの独立検証ではない。</strong> 現版はこの点を JSON に false と記録する。字幕、チャプター、編集ソフト独自メタデータの保存も対象外。商品としての動画対応には、再生確認と音声同期の検証ゲートが必要である。</p>
+<h3>容量の概算</h3>
+<p>非圧縮 RGBA8 は <code>幅 × 高さ × 4 × フレーム数</code> bytes。</p>
+<p>1920×1080、24 fps、5 秒では、1 本の raw データだけで約 0.927 GiB。入力と出力だけでも約 1.854 GiB になる。加えてエンコード、公開前コピー、モデルの一時コピー、ログの容量が必要になる。この値は単純なサイズ式による計算であり、実測ディスク使用量ではない。</p>
+<p>今回の実装は空き容量に余裕がないと開始しない。C: の容量が少ない環境では、十分な空きのあるローカル NTFS 作業フォルダーを明示的に指定する。長尺へ進める前に中間データを逐次流す設計へ更新する必要がある。</p>
+<h2>9. 安全性と証拠</h2>
+<p>設定ファイルはサーバー側だけに置き、ワークフローに任意の実行コマンドや DLL パスを持たせない。各ファイルの SHA-256 を固定し、コピー後のハッシュも確認する。設定を自動生成した直後は無効であり、人間が利用権限・出所を確認して有効化する。</p>
+<p>出力は「処理終了コード 0」「enabled/completed が true」「正確なフレーム数」「所定の完了記録」「期待する raw byte 数」を満たしたときだけ採用する。異常な JSON、重複キー、古い残骸、途中ファイルを拒否する。</p>
+<p>ハッシュは改変検知の手段であり、発行者の正当性やソースとバイナリの一致を自動証明するものではない。ネイティブホストが返す JSON も、それ単独では暗号学的な GPU 証明にならない。本版はその限界を記録する。</p>
+<p>実行中止時にはプロセス群を終了させ、不完全な映像を最終出力として公開しない。既存の画像・動画は上書きしない。作業ディレクトリの排他ロックは、同じ作業ルート内のジョブを直列化する。別ルートや外部アプリによる GPU 競合まで防ぐものではない。</p>
+<h2>10. ライセンスと配布方針</h2>
+<p>本リポジトリのオリジナルコードは MIT。外部ホスト、AMD 実行ランタイム、NVIDIA DLL、抽出済みモデルはそれぞれ別の権利確認が必要である。公開コードの MIT ライセンスだけを根拠に、NVIDIA の重みの再配布が許されると判断してはいけない。[S02, S06–S08]</p>
+<p>今回の ZIP には外部 DLL、EXE、重み、ONNX、GPU カーネル、元ゲーム素材を含めない。利用者が正当な権限を持つローカルファイルを設定する方式とした。取得・抽出・利用・再配布の可否はこのレポートでは確定していない。公開バイナリ配布やモデル同梱を始める前に、対象ごとの条件を確認する。</p>
+<p><code>lmxxf</code> 系では MIT の実装と、GPL のホストや外部フレームワークを組み合わせる経路がある。高速化に採用する部分を選んだ時点で、依存関係単位のライセンス表を更新する。[S05, S06]</p>
+<h2>11. 今回の検証と残ったゲート</h2>
+<p>自動テストの正本は <code>evidence/test-summary.json</code>、個別結果は <code>evidence/junit.xml</code>、実行ログは <code>evidence/pytest.log</code> にある。カバレッジは <code>evidence/coverage-summary.txt</code> と <code>coverage.json</code>。数字は最終パッケージの証拠を参照し、開発途中のテスト件数と混ぜない。</p>
+<p>実 FFmpeg テストでは、合成した 6 フレームの短い SDR 動画に PCM 音声を付け、チャンク 1・2・4 で処理した。CPU reference 経路の画素とフレーム順序を元データと比較し、音声ペイロードをハッシュ照合する。これはファイル処理経路の検証である。</p>
+<p>ネイティブ経路の単体テストは、明示的な偽エンジンを使う。テストダブルは正しい／壊れた JSON、短い raw、途中終了などを作り、ブリッジの判断を検証するためのもの。実 DLSS 推論や GPU 対応の証拠として数えない。</p>
+<p>未実施の項目は、Windows ビルド、ネイティブ DLL ロード、9070 XT の実行、実 ComfyUI UI、画質、ちらつき、GPU 性能、長時間安定性である。これらを別々の完了条件にしたのが <code>ROADMAP.md</code> である。</p>
+<h2>12. 採用判断と次の一手</h2>
+<p>まず 9070 XT 上で <strong>1 枚を正しく処理できること</strong>を確認する。次に 6 / 24 / 120 フレームへ進む。処理が完了しても、質感や輪郭を人間が A/B 評価して不適切なら、その素材では使わない。</p>
+<p>その後、<code>lmxxf</code> の C ABI を扱う専用 D3D12 ホストを研究する。Create/PrepareFrame/RecordInputs/EnqueueHip/RecordOutputs/Poll/Retire などの GPU リソース管理が必要であり、NumPy のポインターを ctypes に渡すだけでは済まない。[S06]</p>
+<p>ONNX の別枝は、固定サイズ・linear RGB・GPU provider・数値比較・権利確認を先に解決する。FSR などの時間型超解像も、本物の補助入力とリセット条件を設計してから扱う。FSR 3.1.4 の公式入力契約は、その必要性を考える参考になるが、すべての FSR4 実装へそのまま一般化しない。[S08, S10]</p>
+<p><strong>この成果物の到達点は、実行証拠と失敗条件を持つ開発用ブリッジである。次の到達点は、ひろなおの 9070 XT で同じ契約を満たす実行記録を得ること。その後に、速さと画質を競う。</strong></p>
+<hr />
+<h2>参照方法</h2>
+<p>本文の [Sxx] は <a href="docs/SOURCES.md">docs/SOURCES.md</a> の一次資料に対応する。公開資料の主張、実装判断、こちらで実行したテストを区別して記載した。手元で再現していない作者の測定値には、その旨を付記した。</p>
+</section><section class="chapter" id="roadmap"><div class="kicker">完了条件つきロードマップ</div><h1>Roadmap — 実機証拠を条件に進める開発計画</h1>
+<p><strong>対象:</strong> ComfyUI-DLSS5-AMD / RX 9070 XT / Windows ファースト<br />
+<strong>基準日:</strong> 2026-09-25<br />
+<strong>現在の版:</strong> 0.1.0a1、開発用・実 GPU 未検証</p>
+<p>この計画は機能一覧ではなく、各段階に「先行条件」「実装」「テスト」「合格条件」「失敗した場合」を持たせる。未検証の性能や画質を保証しない。予定日や所要時間ではなく、証拠が揃った順に進める。</p>
+<h2>0. 到達点の定義</h2>
+<p><strong>最低限の成功:</strong> 9070 XT 上で、正当に利用可能なランタイムと固定したホストを使い、1 枚の IMAGE を処理し、完了記録・形状・画像内容・キャンセルを検証できる。</p>
+<p><strong>使える初版:</strong> 実 ComfyUI で画像と短い動画が再現可能に処理される。失敗時に原画像コピーへ黙って切り替わらず、品質が悪い素材を判別でき、再現設定とログが残る。</p>
+<p><strong>公開可能な版:</strong> 対応環境・依存ライセンス・既知の制限・実測を公開できる。新規インストールでも手順が成立し、動画と長時間運用の回帰が通る。モデル／DLL の配布権を曖昧にしない。</p>
+<p><strong>今回の完了:</strong> R0、および R1 の実装・CPU 契約テスト。Windows ビルドや GPU 推論を R1 完了に含めない。</p>
+<h2>1. 全体ルート</h2>
+<pre><code class="language-text">R0 出所・仕様の確認                 [完了]
+  ↓
+R1 Python bridge / CPU 契約試験      [実装・テスト完了]
+  ↓
+R2 Windows build + 9070 XT 1枚       [未実施／最優先]
+  ↓
+R3 ComfyUI 実接続・短い動画          [コードあり／実機ゲート未実施]
+  ↓
+R4 画質・意味保持・時間安定性        [未実施]
+  ↓
+R5 持続セッション・性能最適化        [設計のみ]
+  ↓
+R6 配布・互換性・運用               [未実施]
+
+別研究枝: ONNX / 正規の補助入力付き temporal SR / 高ビット深度
+</code></pre>
+<p>R4 の最小品質試験は R2/R3 にも含め、速度だけを先に磨かない。R5 は R2 と R3 の正しさを壊さないことを前提にする。</p>
+<h2>R0 — 調査と契約固定</h2>
+<h3>目的</h3>
+<p>ゲーム向けの話題と、オフライン ComfyUI の要件を切り分ける。存在未確認の API や性能値で実装しない。</p>
+<h3>完了内容</h3>
+<p>公開 README、native README、enhance.py、CMake、native ソース冒頭、Git ref を確認。raw RGBA8 と JSON の契約を採用し、<code>upstream.lock.json</code> にコミットと重要ファイルの Git blob ID を記録した。ネイティブバイナリの同一性は別途 SHA-256 で管理する。</p>
+<h3>合格条件</h3>
+<ul>
+<li>外部ホストの exact CLI と INI が、実際のコード／資料に対応する。</li>
+<li>NR、SR、補間、出力合成を分けている。</li>
+<li>作者の測定・こちらの測定・推論を区別している。</li>
+<li>ZIP に外部 DLL・重みがない。</li>
+</ul>
+<h3>残すリスク</h3>
+<p>公開コードや README は実機動作の保証ではない。固定したコミットが後日取得できなくなる可能性もある。別コミットへの変更は再調査と契約回帰を必要とする。</p>
+<h2>R1 — ComfyUI と外部ホストを接続する最小実装</h2>
+<h3>実装範囲</h3>
+<p><code>amd_nr/contracts.py</code>、<code>config.py</code>、<code>backends.py</code>、<code>evidence.py</code>、<code>pipeline.py</code>、<code>process.py</code>、<code>video.py</code>、<code>nodes.py</code>、CLI。</p>
+<p>BHWC・RGB/RGBA・float 値域・マスクの検証。RGBA8 転送。原本を保つ mix。fresh job。サーバー設定だけで決まる EXE。ハッシュ検査。shell-free 起動。タイムアウト。プロセス群の終了。上書き禁止。動画のフレーム／音声検査。CPU reference は明示的に別経路にする。</p>
+<h3>合格条件</h3>
+<p><code>python scripts/collect_evidence.py</code> が成功する。壊れた JSON、完了数不一致、途中 raw、非ゼロ終了、キャンセル、ハッシュ不一致で結果を拒否する。CPU 経路の画像／動画往復は検証される。ComfyUI 型の import とノード関数の呼び出しが通る。</p>
+<h3>現在</h3>
+<p><strong>完了。ただし CPU とテストダブルの範囲。</strong> 最新の件数は <code>evidence/test-summary.json</code> を正本とする。実ブラウザー・Windows・GPU は別ゲート。</p>
+<h2>R2 — Windows / RX 9070 XT の first-light</h2>
+<h3>先行条件</h3>
+<p>R1 合格。既存 ComfyUI の Python と GPU 用 PyTorch を壊さない。正当な権限のある対応ランタイムを人間が用意する。作業先と出力先に十分な空き容量がある。</p>
+<h3>R2.1 ソースとビルド</h3>
+<ol>
+<li><code>fetch_upstream.py</code> で固定コミットを取得し、レビューする。自動でコードは実行しない。</li>
+<li>x64 Developer PowerShell から <code>build_native.ps1</code> を実行する。</li>
+<li>ビルドした EXE、ソースコミット、Windows SDK、MSVC、CMake、Python、OS ビルドを記録する。</li>
+<li>EXE・DLL・重みの SHA-256 を <code>init-config</code> で取得。生成直後は無効のまま。</li>
+</ol>
+<p><strong>合格:</strong> 固定ソースのビルドが成功し、生成物と設定のハッシュが一致。外部ランタイムがどの GPU/版を対象とするか確認済み。ビルド成功だけで GPU 対応を宣言しない。</p>
+<p><strong>失敗時:</strong> エラーを保存し、SDK/ツールチェーンまたはソース契約の問題として切り分ける。未確認バイナリで穴埋めしない。</p>
+<h3>R2.2 1 フレームの native 実行</h3>
+<p>自分が利用権限を持つ、特徴のある SDR 写真を使う。最初は 640×360 など、作者の検証に近い偶数サイズに明示変換する。flat/black だけを最初の試験にしない。既定は mix=1、fast_isolated=false、Temporal=0。</p>
+<p>GPU の HIP index は機械ごとに確認する。1 を決め打ちしない。ログが RX 9070 XT を示していることと、正しい完了記録を確認する。</p>
+<p><strong>合格:</strong> EXE の exit 0、各カウント 1、所定の完了証拠、出力バイト数一致、真っ黒化なし、画像順序・向き・色の目視確認。<code>manifest.json</code> と hash 一式を保存。</p>
+<p><strong>注意:</strong> ピクセルが変わっただけで合格しない。完了 JSON はホストの報告であり、ソース由来と GPU 実行の独立検証は別の証拠として管理する。</p>
+<h3>R2.3 失敗経路</h3>
+<p>ランタイム不足、意図的なローカルコピーのハッシュ不一致、不正設定、GPU index の誤り、ユーザー中止、処理時間超過を試す。元の正当な DLL を改変せず、テスト用コピー／設定で行う。</p>
+<p><strong>合格:</strong> 正常画像を装う出力が出ない。原本が変わらない。子プロセスが残らず、次の正しいジョブが動く。失敗理由が読める。</p>
+<h3>出口</h3>
+<p><code>evidence/hardware/R2/</code> に手動の環境票、公開可能なログ抜粋、測定値を保存する。私物画像・DLL・重み・個人パスは公開しない。<strong>このゲート通過後に初めて「9070 XT で 1 枚の実行確認済み」と表現する。</strong></p>
+<h2>R3 — ComfyUI 実行と短い動画</h2>
+<h3>R3.1 ComfyUI の実接続</h3>
+<p>実際の custom_nodes フォルダーに配置し、起動ログ、7 ノードの一覧、サンプル JSON の読み込みを確認する。classic API の対応版を記録し、V3 移行を勝手に同時進行しない。</p>
+<p><strong>合格:</strong> CPU 診断 workflow が動作。ネイティブ workflow が R2 と同じ入力・設定で同等の出力を返す。更新したランタイムや設定で古い Comfy キャッシュを無条件に再利用しない。キュー中止が伝わる。</p>
+<h3>R3.2 バッチと素材境界</h3>
+<p>同一画像 A を連続処理し、A→B→A の順でも A の結果が他フレームに混ざらないことを確認。別解像度、別バッチ、別ジョブ間の状態混入を試す。1、2、4 枚のバッチを比較する。</p>
+<p><strong>合格:</strong> 順序とフレーム数の完全一致。前フレームの取り違えゼロ。OOM 時は理由を示して停止。原画像の保持とメモリ解放を確認。</p>
+<h3>R3.3 動画 6 → 24 → 120 フレーム</h3>
+<p>単一ショット、パン、被写体運動、カット切替のある短い SDR/CFR 素材を用意する。最初は <code>chunk_frames=1</code>。動画の長さを勝手に短くせず、必要なら事前に明示トリムする。</p>
+<p><strong>合格:</strong> 動画フレーム数、実 FPS、元との順序、音声ストリーム数、音声ペイロード SHA が一致。実際に再生し、同期と変形を確認する。保存失敗時に公開済みの正常なファイル名へ途中データが残らない。</p>
+<h3>未実装で追加が必要な項目</h3>
+<p>音声 packet timestamp/duration と相対 AV 同期の独立照合。現在はペイロード hash と開始時刻制約まで。コーデック／コンテナーごとの違いを試験し、ずれを検出できないまま「音声完全保持」と広告しない。</p>
+<h3>出口</h3>
+<p>静止画と短い SDR/CFR 動画だけを対象に、<strong>hardware-tested alpha</strong> を検討できる。時間方向の NR 履歴や長尺対応を主張しない。</p>
+<h2>R4 — 画質、意味保持、時間安定性</h2>
+<h3>評価セット案</h3>
+<p>静止画は最低 30 素材を目安にし、写真、人物、商品／ロゴ、小さい文字、アニメ線画、暗部／グラデーションを分ける。動画は最低 12 クリップを目安にし、パン、細い線、髪、葉、反射、水面、カットを含める。これは今後の評価設計の目標であり、現在のテスト数ではない。</p>
+<p>他人の写真やブランド素材を無断で公開用ベンチに使わない。入力の hash と利用条件を保存し、非公開素材はローカル評価だけにする。</p>
+<h3>比較の順序</h3>
+<p>A=原本、B=NR なしの同じ転送・符号化、C=NR 有効、D=別の超解像のみ、E=NR＋同じ超解像。最終解像度・色変換・符号化設定を合わせ、名前を隠してランダム順で比較する。単に C を A より大きく表示しない。</p>
+<h3>判定軸</h3>
+<ul>
+<li>細部が見やすいか。過剰なノイズ・輪郭強調になっていないか。</li>
+<li>顔、衣服、商品形状、文字、ロゴ、線画の意味が保たれているか。</li>
+<li>暗部の粒状化、肌の不自然さ、色相ずれ、ハローが増えていないか。</li>
+<li>動画でフレーム間の粒状化・漂い・形状変化が目立たないか。</li>
+</ul>
+<h3>合格条件の考え方</h3>
+<p>重大なロゴ／文字／商品形状の変更を見逃して「商用素材全般に向く」と言わない。ジャンルごとに採用可否を決める。平均スコアが高くても重大欠陥は別項目として止める。mix を下げる提案も、比較を通してからプリセット化する。</p>
+<p>PSNR や画素差は、正解画像のない NR で単独の品質点にしない。PSNR は高速版と基準版の数値回帰、画素差は無変化・過大変化の診断として用いる。</p>
+<h3>出口</h3>
+<p>「この素材群・設定・環境で、どう良く／悪くなったか」を示せる。万能アップスケーラーとして宣伝せず、不得意分野も明記する。</p>
+<h2>R5 — 性能改善と持続セッション</h2>
+<h3>R5.0 計測を先に実装</h3>
+<p>warmup と本測定を分ける。入力 640×360、1280×720、1920×1080 を明示し、同じ GPU、ドライバー、モデル、出力方式で比較する。各条件を複数回測り中央値とばらつきを残す。</p>
+<p>1 枚、24 枚、120 枚、cold/warm の全工程を分け、GPU 時間は fence/event で完了まで測る。Python 関数が返った時刻だけで GPU カーネル速度を算出しない。</p>
+<h3>R5.1 fast-isolated の検証</h3>
+<p>すでに存在する fast 経路を、新しい exact runtime/engine hash の組合せごとに検証する。速度とともに R2/R3 の出力と失敗処理を比較する。問題がなければその組合せだけを許可する。</p>
+<p><strong>合格:</strong> 実際に短縮した全工程時間を示せる。フレームの取り違えなし。黒崩れ・読み戻し前の未完了・子プロセス残留なし。速度改善率を事前保証しない。</p>
+<h3>R5.2 lmxxf C ABI の独立ホスト</h3>
+<p><code>LmxxfNrGetApi</code> を使う専用 Windows ホストを別バックエンドとして作る。既存 eikkapine アダプターへ互換性があるふりをしない。メッセージには schema、request ID、session ID、frame ID、寸法、色契約、出力サイズ、完了状態を含める。</p>
+<p>必要な実装は D3D12 device/queue、upload/readback buffer、resource state、producer/consumer fence、job retire、drain、error path。ヘッダーの存在だけで各 capability が実装・安定化済みだと仮定しない。</p>
+<p><strong>合格:</strong> 1 枚・連続 A/B/A・解像度変更・cancel・device-lost のすべてで出力の帰属が明確。逐次実行を先に通し、並列化は後にする。持続化による実測改善がなければ、基準ホストを残す。</p>
+<h3>R5.3 転送と一時容量</h3>
+<p>モデルのロードを再利用し、次に named pipe／共有メモリの制御された通信を検討する。最後に GPU interop を考える。D3D12 と PyTorch の所有権・同期・対応 ABI を検証するまでは zero-copy と呼ばない。</p>
+<p>動画は decode→bounded queue→process→encode に移行して、一時ディスクを動画長に比例させない。ただし stdout/stderr のデッドロック、backpressure、キャンセル、音声 mux、失敗時の未公開出力を先に設計する。</p>
+<h3>R5.4 メモリ安定性</h3>
+<p>長時間の実行・中止・再実行を繰り返す。ピークと終了後の RAM/VRAM を記録し、単調な増加があれば公開を止める。ComfyUI の生成モデルと競合する場合は、ユーザー確認のある unload/scheduling を検討する。GPU 全体を勝手に独占しない。</p>
+<h2>R6 — 配布品質と公開</h2>
+<h3>必須ゲート</h3>
+<p>Windows 上の新規導入、通常の ComfyUI、Portable など実際に対象にする環境を限定して試験する。対応表に exact OS、ドライバー、Python、PyTorch、Comfy commit、host/runtime hash を載せる。</p>
+<p>CI は CPU 契約テストと Windows のビルド／プロセス試験を分ける。GPU テストは実機 runner または人間の署名付き確認として扱い、通常の GitHub-hosted runner を GPU 実機と誤記しない。</p>
+<p><code>LICENSE</code>、第三者依存表、利用者向け設定説明、アンインストール方法、既知の問題、トラブルシュート、再現ログの匿名化方法を整える。バイナリ配布の前に出所・ライセンス・必要な再配布条件を確認する。</p>
+<h3>公開時の表現</h3>
+<p>許可する表現は実際のゲートに一致させる。「CPU テスト済み」「RX 9070 XT/指定環境で静止画試験済み」「短い SDR 動画で検証済み」など。</p>
+<p>避ける表現は「全 AMD 対応」「どんな動画でも最高画質」「ネイティブ DLSS 完全対応」「4K リアルタイム保証」「重みを自由に再配布できる」。</p>
+<h2>2. 別研究枝の扱い</h2>
+<h3>ONNX / MIGraphX</h3>
+<p>固定 256×256 のモデルを、何も説明せず高解像度画像にタイル適用しない。グローバルな文脈とパディング、ノイズ、色空間、継ぎ目を個別に検証する。CPU fallback を GPU 推論と偽らない。Linux/890M の測定を Windows/9070 XT に転用しない。モデルの利用・配布条件を確認するまで本体に同梱しない。</p>
+<h3>FSR / temporal SR</h3>
+<p>光学フロー推定値とゲーム由来 motion vectors は同じ精度・意味とは限らない。depth、jitter、exposure、reset、disocclusion をどう供給するか決める。情報不足なら、対応する spatial SR として正直に独立させる。初期 NR ノードの必須依存にしない。</p>
+<h3>高ビット深度 / HDR</h3>
+<p>8 bit ブリッジとは別契約にする。RGBA16F、linear/scRGB/PQ/HLG、tone map と display transform を明確にする。相互に変換できたことと、画質が保持できたことを分けて試験する。</p>
+<h2>3. リスク登録簿</h2>
+<table>
+<thead>
+<tr>
+  <th>リスク</th>
+  <th>影響</th>
+  <th>対策・止める条件</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>runtime と host の版不一致</td>
+  <td>crash / 黒画像 / 誤完了</td>
+  <td>exact hash の組合せで検証。異なる版への自動更新は禁止</td>
+</tr>
+<tr>
+  <td>iGPU と dGPU の取り違え</td>
+  <td>kernel failure / 速度誤測定</td>
+  <td>子プロセスだけの HIP index とログを照合</td>
+</tr>
+<tr>
+  <td>画素変化を品質と混同</td>
+  <td>実制作での劣化</td>
+  <td>原本・転送対照・NR・SR の分離評価</td>
+</tr>
+<tr>
+  <td>フレーム混入</td>
+  <td>動画の見えにくい破綻</td>
+  <td>A/B/A、独立した完了 ID と fence、順序検査</td>
+</tr>
+<tr>
+  <td>低空きディスク</td>
+  <td>処理中断・未完ファイル</td>
+  <td>容量事前確認、raw の削除、段階的な streaming 化</td>
+</tr>
+<tr>
+  <td>色空間の混線</td>
+  <td>色相・明度・暗部の破綻</td>
+  <td>初版 SDR 制限、ICC/HDR の明示処理</td>
+</tr>
+<tr>
+  <td>モデル権利の誤認</td>
+  <td>配布を停止する必要</td>
+  <td>コードと重みを分離し、配布前に依存別確認</td>
+</tr>
+<tr>
+  <td>フル Comfy 未検証</td>
+  <td>import は通るが UI が動かない</td>
+  <td>実 Comfy で workflow、cache、cancel のテスト</td>
+</tr>
+<tr>
+  <td>小さな CPU 試験の過大評価</td>
+  <td>誤った「完成」宣言</td>
+  <td>evidence に未実施の実機ゲートを常に表示</td>
+</tr>
+</tbody>
+</table>
+<h2>4. 直近の優先順位</h2>
+<p><strong>最優先は R2。</strong> 既存のブリッジを 9070 XT に接続し、1 枚の実行証拠を得る。それが通るまで、新しい量子化・ONNX・FSR4・zero-copy を同時追加しない。</p>
+<p>成功したら R3 の 6 フレームへ進む。失敗したら EXE 起動、DLL ロード、GPU 選択、network completion、readback、Python 復元のどこで止まるかを切り分ける。推測で閾値や完了条件を緩めて通すことを禁止する。</p>
+</section><section class="chapter" id="sources"><div class="kicker">一次資料・出所</div><h1>一次資料と出所</h1>
+<p>確認日: <strong>2026-09-25</strong>。GitHub はファイル本体／API を取得し、検索インデックスの説明だけで実装を決定していない。モデルやバイナリはダウンロードしていない。資料の記述は作者の主張を含み、手元での独立した GPU 再現とは別。</p>
+<table>
+<thead>
+<tr>
+  <th>ID</th>
+  <th>一次資料</th>
+  <th>本レポートでの使用範囲</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>S01</td>
+  <td><a href="https://www.nvidia.com/en-gb/geforce/news/dlss-5-3d-guided-neural-rendering/">NVIDIA — DLSS 5 3D-Guided Neural Rendering</a> / 2026-09-01。補足: <a href="https://nvidianews.nvidia.com/news/nvidia-dlss-5-delivers-ai-powered-breakthrough-in-visual-fidelity-for-games">公式発表</a> / 2026-03-16</td>
+  <td>NR の位置づけ、SR 等との独立性、ゲーム由来 motion vectors。公式の品質表現は独立検証結果として扱わない</td>
+</tr>
+<tr>
+  <td>S02</td>
+  <td><a href="https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/README.md">eikkapine/DLSS5-AMD-Video README</a></td>
+  <td>実験的な動画ホスト、作者の 120 フレーム・408.98 秒の測定、外部アセット分離</td>
+</tr>
+<tr>
+  <td>S03</td>
+  <td><a href="https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/native/README.md">native/README.md</a> / <a href="https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/enhance.py">enhance.py</a></td>
+  <td>RGBA8、CLI、完了レポート、フレーム分離、color-only INI、fast opt-in</td>
+</tr>
+<tr>
+  <td>S04</td>
+  <td><a href="https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/native/CMakeLists.txt">native/CMakeLists.txt</a> / <a href="https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/native/src/main.cpp">native/src/main.cpp</a> / <a href="https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/LICENSE">LICENSE</a></td>
+  <td>ビルド依存、native ソース冒頭の CLI/report 実装、プロジェクト固有コードと第三者素材の権利分離</td>
+</tr>
+<tr>
+  <td>S05</td>
+  <td><a href="https://github.com/lmxxf/dlss5-on-amd-9070xt-porting/blob/main/README.md">lmxxf/dlss5-on-amd-9070xt-porting README</a></td>
+  <td>取得時の 0.30 / 2026-09-25、HIP/D3D12 統合、ゲーム NR→FSR、配布物とソースの差異。mutable main の調査スナップショット</td>
+</tr>
+<tr>
+  <td>S06</td>
+  <td><a href="https://github.com/lmxxf/dlss5-on-amd-9070xt-porting/blob/main/include/LmxxfNrApi.h">include/LmxxfNrApi.h</a> / <a href="https://github.com/lmxxf/dlss5-on-amd-9070xt-porting/blob/main/LICENSE">LICENSE</a></td>
+  <td>D3D12 の device/queue/resource を渡す C ABI、capabilities、MIT の範囲。ヘッダーだけで本体の完全動作を保証しない</td>
+</tr>
+<tr>
+  <td>S07</td>
+  <td><a href="https://github.com/danielblnc/DLSS-NR-on-AMD/blob/master/README.md">danielblnc/DLSS-NR-on-AMD README</a> / <a href="https://github.com/danielblnc/DLSS-NR-on-AMD/issues/105">ComfyUI 対応要望 #105</a></td>
+  <td>外部 AMD ランタイムとゲーム統合。Issue の存在を、他の完成品が一切ないことの証拠には使わない</td>
+</tr>
+<tr>
+  <td>S08</td>
+  <td><a href="https://huggingface.co/taowen/dlss5-onnx">taowen/dlss5-onnx model card</a> / <a href="https://huggingface.co/taowen/dlss5-onnx/blob/main/docs/DLSS5_AMD.md">DLSS5_AMD.md</a></td>
+  <td>固定 256×256、linear RGB、静止画再構成、Linux/890M の限定された検証。Windows/9070 XT の保証ではない</td>
+</tr>
+<tr>
+  <td>S09</td>
+  <td><a href="https://docs.comfy.org/custom-nodes/backend/images_and_masks">ComfyUI — Images, Latents, and Masks</a> / <a href="https://docs.comfy.org/custom-nodes/backend/server_overview">Properties</a> / <a href="https://docs.comfy.org/custom-nodes/backend/lifecycle">Lifecycle</a></td>
+  <td>IMAGE/MASK の形状、LoadImage の反転 alpha、classic ノード公開方式</td>
+</tr>
+<tr>
+  <td>S10</td>
+  <td><a href="https://gpuopen.com/manuals/fidelityfx_sdk/techniques/super-resolution-upscaler/">GPUOpen — FSR 3.1.4 Upscaler</a></td>
+  <td>temporal SR の補助入力を検討する根拠。FSR4 のすべての API/モードへ一般化しない</td>
+</tr>
+<tr>
+  <td>S11</td>
+  <td><a href="https://github.com/Blueforcer/ComfyUI-DLSS5-Enhancer/blob/main/README.md">Blueforcer/ComfyUI-DLSS5-Enhancer README</a></td>
+  <td>NVIDIA 向け NGX/D3D12 外部ワーカー、ComfyUI V3、外部バイナリを別管理する設計</td>
+</tr>
+</tbody>
+</table>
+<h2>取得した主な Git blob ID</h2>
+<p>Git blob ID はファイル内容の Git 上の識別子であり、ファイル単体 SHA-256 とは異なる。実行用 EXE/DLL は別途 SHA-256 を計算する。</p>
+<table>
+<thead>
+<tr>
+  <th>ファイル</th>
+  <th>取得時の blob ID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>eikkapine README</td>
+  <td><code>c63f9c56d59d042ea46a5c12fd90b91fb480ccd1</code></td>
+</tr>
+<tr>
+  <td>eikkapine enhance.py</td>
+  <td><code>ce070c91013eed3818e9e18a5141fb604bd6fce6</code></td>
+</tr>
+<tr>
+  <td>eikkapine native README</td>
+  <td><code>c6a73af3dba9346399af45c50e63837441157320</code></td>
+</tr>
+<tr>
+  <td>eikkapine native CMake</td>
+  <td><code>4bcb94adc71f792e40072c425400fa99ed305166</code></td>
+</tr>
+<tr>
+  <td>eikkapine native main.cpp</td>
+  <td><code>74e482a1913e9482033b68e447d2851b293d0c48</code></td>
+</tr>
+<tr>
+  <td>eikkapine LICENSE</td>
+  <td><code>3d27b4a1d9ea52e274a39eb7764d67d68265c147</code></td>
+</tr>
+<tr>
+  <td>lmxxf C ABI header</td>
+  <td><code>b2dafec6da0cc7bdc61102ea530d21e0c5c8c0d4</code></td>
+</tr>
+<tr>
+  <td>lmxxf LICENSE</td>
+  <td><code>ea85db659577a0c8d6fec74c70aea54c30225120</code></td>
+</tr>
+<tr>
+  <td>danielblnc README</td>
+  <td><code>3cb788e61b69763dac6430c22e59f14ec97b8802</code></td>
+</tr>
+<tr>
+  <td>Blueforcer README</td>
+  <td><code>2efd3601ac8a648bcb1e03270fa1905cf5daa4cb</code></td>
+</tr>
+</tbody>
+</table>
+<h2>確認範囲の限界</h2>
+<p>これは公開 README とコード契約の調査であり、すべての upstream コードを監査したという意味ではない。外部ホストの全 native ソースをローカルでビルドしたわけでもない。取得できなかったページや前回答の性能値は、実装の確定根拠から除外した。</p>
+<p>今回の作業環境では一般の GitHub clone がネットワーク解決に失敗したため、公開資料は GitHub コネクター／Web から読んだ。<code>fetch_upstream.py</code> のユーザー環境でのネットワーク取得と Windows ビルドは未実行である。</p>
+</section><footer>オフライン閲覧用。外部フォント・画像・解析スクリプトは読み込みません。コードと実行証拠は同じ ZIP 内にあります。</footer></main></body></html>

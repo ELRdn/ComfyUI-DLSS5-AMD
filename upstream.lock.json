@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "inspected_date": "2026-09-25",
+  "repository": "https://github.com/eikkapine/DLSS5-AMD-Video.git",
+  "commit": "9303dfaa14c2ca83e237ff18318bdfc0b767f6fb",
+  "license": "MIT for that project's host code, not external runtime or weights",
+  "git_blobs": {
+    "README.md": "c63f9c56d59d042ea46a5c12fd90b91fb480ccd1",
+    "enhance.py": "ce070c91013eed3818e9e18a5141fb604bd6fce6",
+    "native/README.md": "c6a73af3dba9346399af45c50e63837441157320",
+    "native/CMakeLists.txt": "4bcb94adc71f792e40072c425400fa99ed305166",
+    "native/src/main.cpp": "74e482a1913e9482033b68e447d2851b293d0c48"
+  },
+  "scope": "Source contract inspected through GitHub; not built or GPU-executed in the delivery environment"
+}

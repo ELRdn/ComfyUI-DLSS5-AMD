@@ -1,0 +1,20 @@
+{
+  "1": {
+    "class_type": "AMDNRSettings",
+    "inputs": {
+      "mix": 1.0
+    }
+  },
+  "2": {
+    "class_type": "AMDNRVideoFile",
+    "inputs": {
+      "video": "PUT_A_CLIP_IN_COMFY_INPUT",
+      "settings": [
+        "1",
+        0
+      ],
+      "max_frames": 300,
+      "chunk_frames": 1
+    }
+  }
+}

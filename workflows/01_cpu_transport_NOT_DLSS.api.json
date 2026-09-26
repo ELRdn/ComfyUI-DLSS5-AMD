@@ -1,0 +1,44 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png"
+    }
+  },
+  "2": {
+    "class_type": "AMDNRRoundtrip",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ]
+    }
+  },
+  "3": {
+    "class_type": "AMDNRCompare",
+    "inputs": {
+      "original": [
+        "1",
+        0
+      ],
+      "processed": [
+        "2",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "3",
+        0
+      ],
+      "filename_prefix": "AMDNR_CPU_NOT_DLSS"
+    }
+  },
+  "5": {
+    "class_type": "AMDNRDiagnostics",
+    "inputs": {}
+  }
+}

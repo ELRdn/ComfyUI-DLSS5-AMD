@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "bridge_version": "0.1.0a1",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "python": "3.13.5",
+  "native_platform_eligible": false,
+  "native_gpu_smoke_test": "NOT_RUN",
+  "native_quality_gate": "NOT_RUN",
+  "ffmpeg": "/usr/bin/ffmpeg",
+  "ffprobe": "/usr/bin/ffprobe",
+  "native_config_present": false,
+  "torch": {
+    "version": "2.10.0+cpu",
+    "hip_build": null,
+    "cuda_available": false,
+    "note": "PyTorch GPU availability does not validate the external D3D12/HIP runtime."
+  },
+  "native_config": {
+    "state": "unavailable",
+    "reason": "Native backend is not configured: /mnt/data/ComfyUI-DLSS5-AMD/config/backend.local.json. Read docs/WINDOWS_SETUP.md; no fallback was used."
+  }
+}

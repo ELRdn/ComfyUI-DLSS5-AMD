@@ -1,0 +1,15 @@
+{
+  "html_browser_preview": "passed",
+  "browser": "system Chromium, HTML supplied directly for rendering",
+  "desktop": {
+    "width": 1440,
+    "horizontal_overflow": false,
+    "sections": 3
+  },
+  "mobile": {
+    "width": 390,
+    "horizontal_overflow": false
+  },
+  "note": "file:// navigation is restricted in this environment; the owned HTML was rendered via set_content",
+  "full_comfyui_browser_test": "NOT_RUN: report document checks only"
+}

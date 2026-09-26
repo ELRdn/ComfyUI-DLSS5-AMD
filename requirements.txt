@@ -1,0 +1,3 @@
+# Keep the ComfyUI environment's existing torch/ROCm build. Never install torch here.
+numpy>=1.24
+Pillow>=10

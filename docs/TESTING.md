@@ -1,0 +1,39 @@
+# テストと証拠の読み方
+
+## 再実行
+
+リポジトリ直下の、NumPy/Pillow/PyTorch/pytest/coverage が使える Python 環境で実行する。
+
+```powershell
+python -m pytest -q
+python scripts/collect_evidence.py
+```
+
+FFmpeg と FFprobe がなければ実動画のテストは skip になる。したがって exit 0 だけでなく **skipped の件数と理由**も読む。配布時点の環境は `evidence/environment.json`。配布時点の正本は `test-summary.json`、全テストの JUnit は `junit.xml`。
+
+## 検証層
+
+| 層 | 実行したこと | 証明しないこと |
+|---|---|---|
+| CPU 数値 | 形状・値域・RGBA8・alpha・mix/mask | ニューラル画質 |
+| ファイル／設定 | JSON・hash・exclusive publish・lock | バイナリの発行者の正当性 |
+| Native 契約 | 偽 EXE 役の Python subprocess を介した正常／異常報告 | DLL ロード・実 GPU 推論 |
+| Comfy メソッド | package import・INPUT_TYPES・tensor 入出力 | 実 Comfy サーバー／フロントエンドの互換性 |
+| FFmpeg 実処理 | 6 フレームの可逆画素・順序・音声 hash の一致 | 長時間、全 codec、完全な AV timestamp 保持 |
+| Windows 実機 | **未実施** | この欄を CPU テストで代用しない |
+
+`tests/support/fake_engine.py` は、先頭からテスト専用と記載したエンジン役である。ハッシュ・報告・process の挙動だけを試す。画像の赤チャネルを人工的に変える場合があるが、ニューラル推論ではない。作例として使わない。
+
+## カバレッジ
+
+`coverage-summary.txt` の数字は Python の実行行／分岐の観測であり、製品品質の百分率ではない。Windows 固有処理やエラー分岐の一部には未実行箇所がある。GPU エンジンは計測対象コードに含めていない。
+
+## 追加する実機テスト
+
+ROADMAP R2/R3 に従い、1 枚、A/B/A、複数解像度、6/24/120 フレーム、cancel、timeout、GPU index、正常復帰を記録する。ハードウェアテストは opt-in とし、通常の CPU テストに混ぜて勝手に DLL を実行しない。
+
+設定、ファイル SHA、入力 SHA、出力 SHA、実行ログ、Windows/driver/Comfy/Python/torch の版、cold/warm の区別を記録する。私物素材・モデル・DLL は evidence フォルダーへ公開しない。
+
+## リグレッション方針
+
+完了検査を緩めてテストを通す修正は禁止。タイムアウトを無制限にする修正、失敗時に元画像を返す修正、fake engine の結果を実推論として記録する修正は禁止する。高速化は exact input/output と品質セットを比較してから昇格する。

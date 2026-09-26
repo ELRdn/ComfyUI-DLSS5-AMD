@@ -1,0 +1,104 @@
+{
+  "last_node_id": 2,
+  "last_link_id": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "AMDNRSettings",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        340,
+        180
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "settings",
+          "type": "AMD_NR_SETTINGS",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AMDNRSettings"
+      },
+      "widgets_values": [
+        1.0
+      ]
+    },
+    {
+      "id": 2,
+      "type": "AMDNRVideoFile",
+      "pos": [
+        440,
+        0
+      ],
+      "size": [
+        340,
+        180
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "settings",
+          "type": "AMD_NR_SETTINGS",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "lossless_mkv_path",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "evidence_json",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AMDNRVideoFile"
+      },
+      "widgets_values": [
+        "PUT_A_CLIP_IN_COMFY_INPUT",
+        300,
+        1
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      2,
+      0,
+      "AMD_NR_SETTINGS"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [
+        40,
+        80
+      ]
+    }
+  },
+  "version": 0.4
+}

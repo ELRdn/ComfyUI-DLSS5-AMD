@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "trusted_local_artifacts": false,
+  "engine": {
+    "path": "C:\\AMDNR\\local-build\\native\\dlss5_video_native.exe",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "runtime": {
+    "version.dll": {
+      "path": "C:\\AMDNR\\private-runtime\\version.dll",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "nvngx_dlssnr.dll": {
+      "path": "C:\\AMDNR\\private-runtime\\nvngx_dlssnr.dll",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "dlssnr_on_amd_weights.bin": {
+      "path": "C:\\AMDNR\\private-runtime\\dlssnr_on_amd_weights.bin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  },
+  "work_root": "D:\\AMDNR-work",
+  "hip_device": null,
+  "timeout_seconds": 600,
+  "worker_seconds": 120,
+  "fast_isolated": false,
+  "fast_mode_verified_for_these_hashes": false,
+  "max_width": 1920,
+  "max_height": 1080
+}

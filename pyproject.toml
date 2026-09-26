@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-dlss5-amd-bridge"
+version = "0.1.0a1"
+description = "Experimental evidence-gated ComfyUI bridge to a user-supplied AMD neural renderer"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["numpy>=1.24", "Pillow>=10"]
+classifiers = ["Development Status :: 3 - Alpha", "Programming Language :: Python :: 3"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "coverage>=7"]
+
+[project.scripts]
+amd-nr = "amd_nr.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["amd_nr*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = ["ffmpeg: requires local FFmpeg and FFprobe", "hardware: requires Windows and trusted AMD runtime"]
+
+[tool.coverage.run]
+source = ["amd_nr"]
+branch = true
+omit = ["amd_nr/__main__.py"]
+
+[tool.coverage.report]
+show_missing = true

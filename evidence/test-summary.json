@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "collected_utc": "2026-09-25T13:53:27.921181+00:00",
+  "exit_code": 0,
+  "tests": 170,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "native_gpu_inference": "NOT_RUN",
+  "windows_native_build": "NOT_RUN",
+  "full_comfyui_server_browser": "NOT_RUN",
+  "tested": [
+    "CPU Python logic",
+    "Comfy node methods and package import",
+    "external native contract with explicitly labelled test double",
+    "real FFmpeg lossless video/audio roundtrip"
+  ],
+  "note": "Coverage and fake-engine completion are NOT evidence of real DLSS execution."
+}
