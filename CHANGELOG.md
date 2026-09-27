@@ -2,6 +2,8 @@
 
 ## Unreleased — 2026-09-27
 
+Documented the user-reported unofficial Streamline ZIP provenance: its issue lists the same NR DLL SHA-256 as the locally supplied file, whose Authenticode status is `HashMismatch`. The rolling third-party archive is not an automatic download source or a verified redistribution grant.
+
 Added a personal-use setup path for a fresh Git clone. A user-supplied ZIP can provide exactly one `nvngx_dlssnr.dll`; only that entry is temporarily extracted, inspected, and removed after installation. `scripts/setup_personal.ps1` verifies or fetches the pinned host, builds it, selects a consistent RX 9070 XT HIP index, downloads the pinned author's installer, and writes a new private configuration. Optional AMF FFmpeg configuration supports the integrated upscaling nodes. The runtime and NVIDIA DLL are still not redistributed, and the third-party runtime's license remains personal/non-commercial.
 
 The setup guide now links directly to the original host/runtime sources, the FFmpeg download pages, and the external AMF node used by the old comparison workflow. It distinguishes ROCm, the separate AMD NR runtime, and the AMF VideoSR1.1 stage; the integrated 06/07 workflows do not require the external AMF custom node.

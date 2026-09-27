@@ -17,8 +17,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 3640,
-      "sha256": "8702eee4c7935317498ed443bb3866c92a82c02c3618e87a7fdd1d831c2649e4"
+      "bytes": 3927,
+      "sha256": "09ee160c00917131da2c98c8a5efc2cc788d476b32df2a9f7046a6cccf08428c"
     },
     {
       "path": "DELIVERY.md",
@@ -167,13 +167,13 @@
     },
     {
       "path": "docs/PERSONAL_SETUP.md",
-      "bytes": 7856,
-      "sha256": "0a9929d15fd1ff9e44f6c73cd5b64bce870cc551c5da7bc86eb97c95bbe590ba"
+      "bytes": 8786,
+      "sha256": "b45585690ba0a5df3f84160b704e6fa3885b401975e58054b67c9cec97f635b8"
     },
     {
       "path": "docs/RUNTIME_SETUP_ja.md",
-      "bytes": 16586,
-      "sha256": "7c75eef02d6faae6173ac001af78c370c0f714e5de3f4591ba8f9990c151c7ab"
+      "bytes": 17205,
+      "sha256": "f96fcab8f1e0ecb48ca32c38dbafc00e727d6248db08da3c2ab5311ee4869cb9"
     },
     {
       "path": "docs/RX9070XT_VALIDATION_2026-09-26.md",

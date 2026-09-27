@@ -75,6 +75,8 @@ HIP の番号は PyTorch の番号と異なりました。各 DLL を別プロ�
 
 提供 DLL の SHA-256 は `ceb6432f6fbdf44d886014bcd47241932bf8b67439feef9bbdd0961436662650`。セットアップは既知の DLL 全体ハッシュと異なると表示しましたが、続く検査で **153 テンソルすべてが 310.8.0.0 と一致**し、生成した重みのハッシュも固定値に一致しました。今回は実行完了と生成物検査を確認できているため、この表示だけをインストール失敗とは判断しません。
 
+利用者が示した [RenoDX DLSS Installer の issue #1](https://github.com/yumlevi/renodx-dlss-installer/issues/1) には、非公式 `streamline.zip` 内の NR DLL として同じ SHA-256 が記録されています。この PC の DLL も `Get-AuthenticodeSignature` では `HashMismatch` でした。issue のゲーム側 NGX 失敗報告と、ここでの AMD 向け重み変換・限定的 ComfyUI 実行成功は異なる経路の結果です。変換成功は署名の正当性や ZIP の再配布権を証明しません。この非公式 ZIP はセットアップの自動取得元に追加しません。
+
 `No game .exe found` も、オフラインの ComfyUI ホスト用にファイルを生成する用途では問題になりません。ゲーム向け INI の `UseFsrInputs=1`、`UseDepth=1`、`Temporal=1` はそのまま推論に使わず、ブリッジが専用作業フォルダーに色入力のみ・履歴なしの INI を生成します。
 
 ### この PC で有効にした設定

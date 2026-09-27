@@ -19,6 +19,8 @@
 | AMF 対応 FFmpeg | [FFmpeg 公式のダウンロード案内](https://ffmpeg.org/download.html)・[Gyan の Windows ビルド](https://www.gyan.dev/ffmpeg/builds/) | 利用者が別途入手した `ffmpeg.exe` を検査し、ローカル設定に SHA-256 で固定。すべてのビルドが `sr_amf` に対応するとは限りません |
 | AMF 拡大の参考ノード | [ComfyUI AMD Video Upscaler](https://github.com/Yasei-no-otoko/ComfyUI-AMD-Video-Upscaler) | 旧 05 workflow の比較用。現在の 06/07 はこの外部ノードを追加せず、同じカスタムノード内で FFmpeg の `sr_amf` を呼びます |
 
+**非公式 ZIP について:** 利用者が挙げた [RenoDX DLSS Installer の issue #1](https://github.com/yumlevi/renodx-dlss-installer/issues/1) は、同プロジェクトの `streamline.zip` に含まれた DLL の SHA-256 を報告しています。この PC の提供 DLL はその値 `ceb6432f6fbdf44d886014bcd47241932bf8b67439feef9bbdd0961436662650` と一致しました。ただし、このローカル DLL の Windows Authenticode 状態は `HashMismatch` です。同リポジトリ自身も Streamline/DLSS DLL を NVIDIA の proprietary ファイルと説明しています。これは入手経路を裏付ける情報であり、NVIDIA 公式配布や第三者による再配布権の確認にはなりません。`latest` は更新可能な release なので、現在の ZIP の中身もこの記録だけでは固定できません。本セットアップはこの非公式 ZIP を自動取得しません。
+
 **ROCm、AMD 向け NR ランタイム、AMF VideoSR1.1 は別物です。** ROCm/PyTorch が動く ComfyUI でも、NR 用のプロキシ・重み・NVIDIA DLL は自動的にはそろいません。AMF 側も Windows の対応 GPU/ドライバーと `sr_amf` 対応 FFmpeg が必要です。AMF は NR の後段で拡大するためのもので、NR の代わりにはなりません。
 
 「自己責任」は利用条件や再配布禁止を免除する意味ではありません。各配布元の条件、手元のファイルの出所、対応版を確認してから導入してください。このリポジトリの MIT ライセンスが適用されるのは本リポジトリの自作コードです。
