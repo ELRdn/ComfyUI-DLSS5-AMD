@@ -1,5 +1,7 @@
 # Delivery · 0.1.0a1
 
+> **2026-09-25 の初回納品記録です。現在の機能・実機検証・公開状態ではありません。** 最新の導入手順は [README.md](README.md) / [README.jp.md](README.jp.md)、検証範囲は [docs/TESTING.md](docs/TESTING.md)を参照してください。
+
 **開始点:** `REPORT.html` をブラウザーで開くと、調査レポート・ロードマップ・一次資料をまとめて読めます。編集可能な正本は `REPORT_ja.md` と `ROADMAP.md` です。
 
 **実装:** ComfyUI カスタムノード 7 種、画像／動画 CLI、外部ネイティブ接続、設定 hash、実行証拠確認、キャンセル、上書き防止、3 種の workflow（UI/API 各形式）。

@@ -14,4 +14,4 @@ Publication refuses existing files and uses a complete temporary file followed b
 
 Windows cancellation and native Job Object behavior have not been independently tested in this delivery. CPU/contract tests do not substitute for that gate. See ROADMAP R2.
 
-For sharing a bug, first remove private paths, media and model/runtime binaries. No public support address or issue tracker has been created by this delivery.
+For sharing a bug, first remove private paths, media and model/runtime binaries. The public [GitHub issue tracker](https://github.com/ELRdn/ComfyUI-DLSS5-AMD/issues) is available for sanitized reports; it is not a channel for uploading proprietary DLLs, weights, or private job folders.

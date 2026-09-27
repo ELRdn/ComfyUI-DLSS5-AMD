@@ -11,11 +11,15 @@
 - `process.py`: shell-free、子プロセス環境、タイムアウト、キャンセル、ログ制限。
 - `filesystem.py`: JSON 検査、空き容量、OS lock、非上書きの最終公開。
 - `video.py`: FFmpeg/FFprobe、CFR 格子、chunk 処理、FFV1 出力、音声ペイロード比較。
+- `amf.py`: ネイティブ NR 後の別工程として、設定に固定した FFmpeg の `sr_amf` / VideoSR1.1 を実行。DLSS の超解像ではない。
+- `runtime_setup.py`: 作者の固定ランタイム取得と、利用者が用意した NR DLL の検査・ローカル生成物の照合。外部バイナリは配布しない。
 - `cli.py`: 手元のファイルで再現するための入口。GPU 依存を勝手に導入しない。
 
 ## 画像契約
 
 入力 BHWC float [0,1]。ComfyUI の標準は C=3、CLI/一部呼び出しでは C=4 も受理。HDR ではないことを利用者が保証する。出力は CPU float32 BHWC。同じ batch・寸法・順序。RGBA8 へ量子化した RGB のみが native へ渡り、original alpha を維持する。
+
+上記の寸法維持は NR 段階の契約。統合画像ノード `AMDNRRenderUpscale` は RGB 入力だけを受け取り、NR 完了後に別工程の AMF VideoSR1.1 で出力寸法を拡大する。
 
 `output = original + mix × mask × (native - original)` を RGB に適用する。mask なしは 1。白で効果、黒で原本保持。mix=0 でも native 選択時は native の実行を行う。省略した推論を「完了」と偽らないためである。
 

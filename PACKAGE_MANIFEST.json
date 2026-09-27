@@ -22,8 +22,8 @@
     },
     {
       "path": "DELIVERY.md",
-      "bytes": 2037,
-      "sha256": "29e49ea85d562a2fb105e62e7493f80643c0f187b635a70f95d831f6e1408ae6"
+      "bytes": 2317,
+      "sha256": "42cffc05a4a53e8c2ae5afe231c3c9ae84951421ec07b4bdd8102cdbfc079e01"
     },
     {
       "path": "LICENSE",
@@ -32,33 +32,33 @@
     },
     {
       "path": "README.jp.md",
-      "bytes": 10996,
-      "sha256": "64027fb4b70d57134db74ec9adf35b9f8e881cb9bec42dae33b2c801a3718250"
+      "bytes": 12414,
+      "sha256": "e046b82cd564402844554faa20b44bad8bf7dbccb59f87a75c30a611283a3373"
     },
     {
       "path": "README.md",
-      "bytes": 10230,
-      "sha256": "5c79c27c9dd0902fb4d862ec0f794b98289b4fbd8aaaac40de4eb2d381a4aa4d"
+      "bytes": 11401,
+      "sha256": "7d9b5eec95e1aab0917dff66d984b144ce1ca2e8f6711384133a2999b31a9422"
     },
     {
       "path": "REPORT.html",
-      "bytes": 50941,
-      "sha256": "4c17a97b99f595a5573251f39b18b4fafb5ce7144cf617df5df8154ae2a793ce"
+      "bytes": 52310,
+      "sha256": "82e9a98bc851db85b10b0cdc4c4fd93663b56b5266defba8bffe29bab82ae692"
     },
     {
       "path": "REPORT_ja.md",
-      "bytes": 18302,
-      "sha256": "c1fc9df758a7c66fade79a039e8a7ce39d5fe046fa68d8d4cea61daf50f11145"
+      "bytes": 18707,
+      "sha256": "fa855791b7af2b6e8d1d25673aae1f32f7880184f1d46b06ef1c2877b4260a74"
     },
     {
       "path": "ROADMAP.md",
-      "bytes": 18183,
-      "sha256": "32c6989491225b8ba5b26a33432f589e624a5e543e2beb8bbe639c39f5b6fa23"
+      "bytes": 18370,
+      "sha256": "2147daadc039f939c8a1ddd0dc3a437e5d89fc968bc8315e4e56d886db4f13d4"
     },
     {
       "path": "SECURITY.md",
-      "bytes": 2522,
-      "sha256": "e14b83335611048178f0b10fe99993b06a452fcb18768c064b28c4fd608575fd"
+      "bytes": 2650,
+      "sha256": "8f60c892130c4f651ccc7eef4ca87d9104ed109c80af2214fc8fecc567e927fa"
     },
     {
       "path": "THIRD_PARTY_NOTICES.md",
@@ -157,18 +157,18 @@
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "bytes": 3905,
-      "sha256": "814cd92ec7b86fbe7ad1b0276e1eb64307bcc7eb050ea2a80bf0e60a2dbc7046"
+      "bytes": 4449,
+      "sha256": "fcc73739f1af328def874b07800bae8fc4cb861a3c49b86e7b08f27df692448f"
     },
     {
       "path": "docs/HANDOFF.md",
-      "bytes": 3825,
-      "sha256": "23a80accf4e891e84a3be6fd27ee0a9817cd99db90d1dbe2ca4baad123d7f0a2"
+      "bytes": 4022,
+      "sha256": "c2c37b069ded471c2d44c5a69f23c69e2328f92958407b1fa7fca5e486aca7f8"
     },
     {
       "path": "docs/PERSONAL_SETUP.md",
-      "bytes": 8786,
-      "sha256": "b45585690ba0a5df3f84160b704e6fa3885b401975e58054b67c9cec97f635b8"
+      "bytes": 9076,
+      "sha256": "6d3f69719278454f1514c65c8e8948d91747d404ac8529e9ddacf82abb8d2396"
     },
     {
       "path": "docs/RUNTIME_SETUP_ja.md",
@@ -192,8 +192,8 @@
     },
     {
       "path": "docs/TESTING.md",
-      "bytes": 3222,
-      "sha256": "3b885078e7f2affdba8528a1e823671b4e41d53c02ad13615204e3fbb2d540cf"
+      "bytes": 3463,
+      "sha256": "1f365cce324dd864aa125b84379cd33005a30a402624b9387fc827696006c299"
     },
     {
       "path": "docs/WINDOWS_SETUP.md",
@@ -292,8 +292,8 @@
     },
     {
       "path": "scripts/render_report.py",
-      "bytes": 5660,
-      "sha256": "d85a6a2776877f6e400c5ed1f8d63f797d630573c9cc98cae36169b20a8c5536"
+      "bytes": 5801,
+      "sha256": "0f20f753d6f0f424a79774df00507f724228428955db83c3bb8cccadb3b864d2"
     },
     {
       "path": "scripts/setup_personal.ps1",

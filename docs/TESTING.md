@@ -9,7 +9,7 @@ python -m pytest -q
 python scripts/collect_evidence.py
 ```
 
-FFmpeg と FFprobe がなければ実動画のテストは skip になる。したがって exit 0 だけでなく **skipped の件数と理由**も読む。配布時点の環境は `evidence/environment.json`。配布時点の正本は `test-summary.json`、全テストの JUnit は `junit.xml`。
+FFmpeg と FFprobe がなければ実動画のテストは skip になる。したがって exit 0 だけでなく **skipped の件数と理由**も読む。`evidence/environment.json` と `evidence/test-summary.json` は **2026-09-25 の Linux/CPU 初回納品スナップショット**で、現在の 9 ノードや Windows 実機確認を含まない。初回の全テスト JUnit は `evidence/junit.xml`。実機の結果は下記の検証記録を、現在のコードの結果は上記コマンドの再実行結果を参照する。
 
 ## 検証層
 

@@ -60,4 +60,4 @@ DLL 単体なら `-ModelDll 'C:\path\to\nvngx_dlssnr.dll'` を `-ModelZip` の�
 - 作者のセットアップをユーザーの PC 上で実行し、生成したプロキシと重みを固定ハッシュで照合する。新規の `config/backend.local.json` を作り、有効化する。既存設定を上書きしない。
 - FFmpeg を指定した場合は、その実行ファイルの AMF 対応と SHA-256 を設定に記録する。
 
-非公開ファイルは Git 無視対象の `local-build/` と `config/backend.local.json` に保存します。元の ZIP / DLL は変更しません。セットアップ完了は GPU 推論や画質の合格を意味しません。ComfyUI を再起動して [画像 06](../workflows/06_nr_amf_image_ONE_NODE_EXPERIMENTAL.json) または [動画 07](../workflows/07_nr_amf_video_ONE_NODE_EXPERIMENTAL.json) を読み込み、まず短い SDR 素材で確認してください。[実機検証の範囲](SCALING_VALIDATION_2026-09-27.md)と[詳しいランタイム調査](RUNTIME_SETUP_ja.md)も参照してください。
+非公開ファイルは Git 無視対象の `local-build/` と `config/backend.local.json` に保存します。元の ZIP / DLL は変更しません。**新規 PC での一括セットアップ完走は未検証**であり、セットアップ完了だけでは GPU 推論や画質の合格になりません。ComfyUI を再起動して [画像 06](../workflows/06_nr_amf_image_ONE_NODE_EXPERIMENTAL.json) または [動画 07](../workflows/07_nr_amf_video_ONE_NODE_EXPERIMENTAL.json) を読み込み、まず短い SDR 素材で確認してください。ノード読み込み時に NumPy/Pillow が不足する場合だけ、ComfyUI が使う Python で `-m pip install -r requirements.txt` を実行します。PyTorch はこの requirements に含みません。[実機検証の範囲](SCALING_VALIDATION_2026-09-27.md)と[詳しいランタイム調査](RUNTIME_SETUP_ja.md)も参照してください。

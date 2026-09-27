@@ -2,23 +2,45 @@
 
 [English](README.md) | [日本語](README.jp.md)
 
-**Version 0.1.0a1 · Research snapshot: 2026-09-25**
+**Experimental v0.1.0a1 · Validation updated 2026-09-27**
 
-An experimental ComfyUI custom node for Windows / RX 9070 XT that connects to an AMD neural-rendering host supplied by the user. **Enabled neural processing was verified locally on 2026-09-26; integrated image and three-frame video upscaling through AMD AMF VideoSR1.1 was verified through the ComfyUI API on 2026-09-27.** This repository does not include DLSS weights, DLLs, or a finished GPU engine.
+An experimental ComfyUI custom node for Windows / RX 9070 XT that connects to a locally built external AMD neural-rendering host. **Enabled neural processing was verified locally on 2026-09-26; integrated image and three-frame video upscaling through AMD AMF VideoSR1.1 was verified through the ComfyUI API on 2026-09-27.** This repository does not include DLSS weights, DLLs, or a prebuilt GPU host. New installations, natural-image quality, and long videos have not been validated.
 
 This is not an official NVIDIA or AMD product. “DLSS” in the name identifies the technology being investigated; it does not imply affiliation or endorsement.
 
-[Full research report (offline HTML)](REPORT.html) · [Japanese research report](REPORT_ja.md)
+[Original 2026-09-25 research report (offline HTML)](REPORT.html) · [Japanese source](REPORT_ja.md)
+
+## How to start (personal use)
+
+1. Use Windows x64 with an RX 9070 XT and an existing ComfyUI installation. For the first native build, open an **x64 Visual Studio Developer PowerShell** with Git, CMake, MSVC, NMake, and the Windows SDK. Have a legitimately obtained `nvngx_dlssnr.dll` **310.8.0.0** or a ZIP containing exactly one copy. For the combined image/video nodes, also obtain a Windows `ffmpeg.exe` with `sr_amf` and AMF hardware acceleration. Read the [personal-use setup and source links](docs/PERSONAL_SETUP.md) and the [external runtime license](https://github.com/danielblnc/DLSS-NR-on-AMD/blob/v0.2.17/LICENSE) before proceeding.
+2. Clone into the **actual** ComfyUI `custom_nodes` folder. Replace the example paths with yours; point `$Py` to the Python used by ComfyUI.
+
+   ```powershell
+   $Comfy = 'C:\path\to\ComfyUI'
+   $Py = 'C:\path\to\ComfyUI\.venv\Scripts\python.exe'
+   $OwnedZip = 'C:\path\to\your-owned-files.zip'
+   $AmfFfmpeg = 'C:\path\to\AMF-enabled\ffmpeg.exe'
+   Set-Location (Join-Path $Comfy 'custom_nodes')
+   git clone https://github.com/ELRdn/ComfyUI-DLSS5-AMD.git
+   Set-Location .\ComfyUI-DLSS5-AMD
+   & .\scripts\setup_personal.ps1 -Python $Py -ModelZip $OwnedZip -FFmpeg $AmfFfmpeg -AcceptRuntimeLicense
+   ```
+
+   Supply `-ModelDll 'C:\path\to\nvngx_dlssnr.dll'` instead of `-ModelZip` if you have the DLL itself. The script refuses an existing configuration. It verifies local artifacts but does not establish GPU inference or image quality on a new PC. See the [detailed guide](docs/PERSONAL_SETUP.md) if the build, HIP device selection, or AMF check stops.
+3. Restart ComfyUI. For an image, put a small **SDR/sRGB** file in ComfyUI's `input` folder or upload it through Load Image. Open [workflow 06](workflows/06_nr_amf_image_ONE_NODE_EXPERIMENTAL.json), select that image in Load Image, start with `factor=2`, then queue the graph. Save Image writes the result to ComfyUI's output folder. For a video, put a short **SDR/CFR** clip directly in ComfyUI's `input` folder, open [workflow 07](workflows/07_nr_amf_video_ONE_NODE_EXPERIMENTAL.json), select that filename, set `max_frames` to cover the clip, and queue it. The lossless MKV is written under `output/amd_nr/`; the node also returns its path. The video node does not include a player UI.
+
+Workflows 06/07 use **native NR at the original size, then AMD AMF VideoSR1.1 for enlargement**. They do not need the separate ComfyUI AMD Video Upscaler custom node. Their UI JSONs passed structural checks; the matching API graphs were executed. Manual browser execution of these two workflows remains unverified. This is a personal, non-commercial research path, not a production-quality or commercially licensed DLSS 5 release.
 
 ## Start here
 
 | Goal | File |
 |---|---|
-| Research findings and technical decisions | [REPORT_ja.md](REPORT_ja.md) (Japanese) |
+| Clone, runtime prerequisites, and source links | [docs/PERSONAL_SETUP.md](docs/PERSONAL_SETUP.md) (Japanese) |
+| Original 2026-09-25 research snapshot | [REPORT_ja.md](REPORT_ja.md) (Japanese) |
 | Roadmap with acceptance criteria | [ROADMAP.md](ROADMAP.md) (Japanese) |
 | Windows / ComfyUI setup | [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) (Japanese) |
 | Runtime files, acquisition, and setup helper | [docs/RUNTIME_SETUP_ja.md](docs/RUNTIME_SETUP_ja.md) (Japanese) |
-| Test results and remaining validation | [evidence/test-summary.json](evidence/test-summary.json), [docs/TESTING.md](docs/TESTING.md) |
+| Validation scope and the initial 2026-09-25 test snapshot | [docs/TESTING.md](docs/TESTING.md), [evidence/test-summary.json](evidence/test-summary.json) |
 | Handoff for the next development agent | [docs/HANDOFF.md](docs/HANDOFF.md) (Japanese) |
 
 ## What is implemented
@@ -72,28 +94,7 @@ Node-method tests require an existing PyTorch installation. Check whether the te
 
 ## Native setup
 
-For a personal-use Windows install from a clone, use the [guided ZIP setup](docs/PERSONAL_SETUP.md). It accepts your own legitimately obtained ZIP containing one `nvngx_dlssnr.dll` (or the DLL itself), fetches the pinned public installer, builds the pinned host, verifies generated files, and writes a private ComfyUI configuration. An AMF-capable FFmpeg executable can be supplied for the integrated image/video upscale nodes. The runtime's license excludes commercial use and bundling; a paid customer distribution needs separate permission from its author.
-
-ROCm, the author's AMD NR runtime, and AMF VideoSR1.1 are separate components. Installing ROCm does not supply the NR proxy, weights, or NVIDIA DLL. The current 06/07 workflows already call FFmpeg's AMF filter inside this custom node; the external ComfyUI AMD Video Upscaler is only needed for the older comparison workflow 05. The [setup guide](docs/PERSONAL_SETUP.md) links to the original sources and explains which files the user must supply.
-
-Follow the [Windows setup guide](docs/WINDOWS_SETUP.md) (Japanese) to fetch, inspect, and build the external host at a pinned revision, then configure a local runtime you are authorized to use. Review the external host code before running it.
-
-```powershell
-python scripts/fetch_upstream.py
-# Then, in an x64 Visual Studio Developer PowerShell:
-.\scripts\build_native.ps1 -Python python
-```
-
-This **only builds the host**. It does not obtain weights or a runtime, or change drivers. Use `init-config` to generate hashes for the runtime configuration, then review and enable that configuration manually. See the setup guide for details.
-
-The optional setup helper downloads the pinned **v0.2.17** installer directly from its author's release and verifies its SHA-256:
-
-```powershell
-python scripts/setup_runtime.py prepare
-python scripts/setup_runtime.py status
-```
-
-Installation requires your legitimately obtained **`nvngx_dlssnr.dll` 310.8.0.0 (x64)**. The external installer generates the AMD proxy and weights locally; the helper verifies their pinned hashes before writing a new configuration. See the [runtime setup guide](docs/RUNTIME_SETUP_ja.md) for HIP device selection and the `install` command. The AMD runtime permits personal, non-commercial use and prohibits redistribution. Newer runtime versions are not validated with this host.
+The [guided setup](docs/PERSONAL_SETUP.md) fetches the pinned author's **v0.2.17** installer, builds the pinned external host locally, checks hashes, and creates a private configuration. It never downloads the NVIDIA NR DLL. The [manual Windows steps](docs/WINDOWS_SETUP.md) and [runtime analysis](docs/RUNTIME_SETUP_ja.md) explain each stage. ROCm, the author's AMD NR runtime, and AMF VideoSR1.1 are separate components; installing ROCm does not supply the NR proxy, weights, or NVIDIA DLL. External runtime and model terms remain separate from this repository's MIT license.
 
 ## ComfyUI
 

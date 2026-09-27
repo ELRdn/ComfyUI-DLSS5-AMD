@@ -2,23 +2,45 @@
 
 [English](README.md) | [日本語](README.jp.md)
 
-**Version 0.1.0a1 · Research snapshot: 2026-09-25**
+**実験版 v0.1.0a1 · 検証記録の更新: 2026-09-27**
 
-Windows / RX 9070 XT 向けの、ユーザーが用意した AMD Neural Rendering ホストを ComfyUI に接続する実験的カスタムノードです。**2026-09-26 に実ニューラル処理を、2026-09-27 に AMD AMF VideoSR1.1 による統合画像・3フレーム動画の拡大を ComfyUI API で確認しました。** DLSS の重み・DLL・完成済み GPU エンジンは含みません。
+Windows / RX 9070 XT 向けの、ローカルでビルドする外部 AMD Neural Rendering ホストを ComfyUI に接続する実験的カスタムノードです。**2026-09-26 に実ニューラル処理を、2026-09-27 に AMD AMF VideoSR1.1 による統合画像・3フレーム動画の拡大を ComfyUI API で確認しました。** DLSS の重み・DLL・ビルド済み GPU ホストは含みません。新規 PC での導入再現、自然画像の画質、長い動画は未検証です。
 
 これは NVIDIA / AMD の公式製品ではありません。名称中の DLSS は対象技術の識別用です。NVIDIA / AMD との提携・推奨を示しません。
 
-[ブラウザー用の総合レポート（オフライン HTML）](REPORT.html)
+[初回 2026-09-25 の調査レポート（オフライン HTML）](REPORT.html)
+
+## はじめかた（個人利用）
+
+1. Windows x64、RX 9070 XT、動作する ComfyUI を用意します。初回のホストビルドには、Git・CMake・MSVC・NMake・Windows SDK が使える **x64 Visual Studio Developer PowerShell** が必要です。利用権限のある `nvngx_dlssnr.dll` **310.8.0.0**、またはその DLL が1個入った ZIP を用意します。画像・動画の統合拡大には `sr_amf` と AMF hardware acceleration に対応する Windows 用 `ffmpeg.exe` も必要です。[配布元と利用条件](docs/PERSONAL_SETUP.md)および[外部ランタイムの LICENSE](https://github.com/danielblnc/DLSS-NR-on-AMD/blob/v0.2.17/LICENSE)を確認してください。
+2. **実際の** ComfyUI の `custom_nodes` に clone します。以下のパスは例です。`$Py` は ComfyUI が使う Python に合わせてください。
+
+   ```powershell
+   $Comfy = 'C:\path\to\ComfyUI'
+   $Py = 'C:\path\to\ComfyUI\.venv\Scripts\python.exe'
+   $OwnedZip = 'C:\path\to\your-owned-files.zip'
+   $AmfFfmpeg = 'C:\path\to\AMF-enabled\ffmpeg.exe'
+   Set-Location (Join-Path $Comfy 'custom_nodes')
+   git clone https://github.com/ELRdn/ComfyUI-DLSS5-AMD.git
+   Set-Location .\ComfyUI-DLSS5-AMD
+   & .\scripts\setup_personal.ps1 -Python $Py -ModelZip $OwnedZip -FFmpeg $AmfFfmpeg -AcceptRuntimeLicense
+   ```
+
+   ZIP ではなく DLL 単体なら `-ModelZip` を `-ModelDll 'C:\path\to\nvngx_dlssnr.dll'` に置き換えます。スクリプトは既存設定を上書きしません。ハッシュの検査は新しい PC での GPU 推論や画質の合格ではありません。ビルド、HIP 番号、AMF の検査で止まる場合は[詳細手順](docs/PERSONAL_SETUP.md)を参照してください。
+3. ComfyUI を再起動します。画像は小さな **SDR/sRGB** ファイルを ComfyUI の `input` に置くか Load Image からアップロードします。[06 のワークフロー](workflows/06_nr_amf_image_ONE_NODE_EXPERIMENTAL.json)を開き、Load Image でその画像を選び、`factor=2` から実行します。Save Image が ComfyUI の出力フォルダーへ保存します。動画は短い **SDR/CFR** ファイルを ComfyUI の `input` 直下へ置き、[07 のワークフロー](workflows/07_nr_amf_video_ONE_NODE_EXPERIMENTAL.json)でファイル名を選び、`max_frames` を素材のフレーム数以上にして実行します。可逆 MKV は `output/amd_nr/` に保存され、ノードもパスを返します。動画プレーヤー UI はありません。
+
+06/07 は**元の寸法で NR を処理し、後段の AMD AMF VideoSR1.1 で拡大**します。外部の ComfyUI AMD Video Upscaler ノードは不要です。UI JSON の構造検査と、対応する API グラフの実行を確認しました。06/07 のブラウザーからの手動実行は未確認です。この導入は個人・非商用の研究用途であり、製品画質や商用利用を保証する公開版ではありません。
 
 ## まず読む
 
 | 目的 | ファイル |
 |---|---|
-| 調査結果と技術判断 | [REPORT_ja.md](REPORT_ja.md) |
+| clone、必要ファイル、配布元のリンク | [docs/PERSONAL_SETUP.md](docs/PERSONAL_SETUP.md) |
+| 初回 2026-09-25 の調査記録 | [REPORT_ja.md](REPORT_ja.md) |
 | 完了条件つきロードマップ | [ROADMAP.md](ROADMAP.md) |
 | Windows / ComfyUI への導入 | [docs/WINDOWS_SETUP.md](docs/WINDOWS_SETUP.md) |
 | ランタイムの入手・導入・補助ツール | [docs/RUNTIME_SETUP_ja.md](docs/RUNTIME_SETUP_ja.md) |
-| テスト結果と未検証項目 | [evidence/test-summary.json](evidence/test-summary.json)、[docs/TESTING.md](docs/TESTING.md) |
+| 検証範囲と初回 2026-09-25 のテスト記録 | [docs/TESTING.md](docs/TESTING.md)、[evidence/test-summary.json](evidence/test-summary.json) |
 | 次の開発エージェントへの引き継ぎ | [docs/HANDOFF.md](docs/HANDOFF.md) |
 
 ## このリポジトリで実装したもの
@@ -72,28 +94,7 @@ python scripts/collect_evidence.py
 
 ## ネイティブ版の導入
 
-個人利用で Git clone から導入する場合は [ZIP 対応セットアップ](docs/PERSONAL_SETUP.md) を使えます。正当に入手した `nvngx_dlssnr.dll` を含む ZIP（または DLL 単体）を指定すると、固定した作者公開セットアップの取得、ホストのビルド、生成物検証、ComfyUI の非公開設定まで順に実行します。統合画像・動画拡大には AMF 対応 FFmpeg も指定できます。外部ランタイムは非商用・再配布禁止のため、有料の一般客向け提供には作者から別途許諾が必要です。
-
-ROCm、作者の AMD 向け NR ランタイム、AMF VideoSR1.1 は別物です。ROCm だけでは NR 用のプロキシ・重み・NVIDIA DLL はそろいません。06/07 はこのカスタムノード内で FFmpeg の AMF フィルターを呼ぶため、外部の ComfyUI AMD Video Upscaler ノードは不要です。配布元リンクと本人が用意するファイルは[導入ガイド](docs/PERSONAL_SETUP.md)にまとめています。
-
-[Windows 手順](docs/WINDOWS_SETUP.md)に従い、固定リビジョンの外部ホストを取得・確認・ビルドし、正当な利用権限のあるローカルランタイムを設定します。外部ホストのコードも実行前に確認してください。
-
-```powershell
-python scripts/fetch_upstream.py
-# 続いて x64 Visual Studio Developer PowerShell で:
-.\scripts\build_native.ps1 -Python python
-```
-
-これは **ホストのビルドまで**です。重み／ランタイム取得やドライバー変更は行いません。実行用設定は `init-config` でハッシュを生成後、人間が確認して有効化します。詳細は手順書参照。
-
-別途、公式 **v0.2.17** セットアップを取得して SHA-256 を照合する補助ツールを用意しています。
-
-```powershell
-python scripts/setup_runtime.py prepare
-python scripts/setup_runtime.py status
-```
-
-導入には、利用者の正当に入手した **`nvngx_dlssnr.dll` 310.8.0.0（x64）** が必要です。AMD セットアップがプロキシと重みをローカルに生成し、補助ツールが固定ハッシュを確認して設定を作成します。HIP 番号と `install` コマンドは [導入ガイド](docs/RUNTIME_SETUP_ja.md) を参照。AMD ランタイムは個人・非商用利用限定で、再配布は禁止されています。最新版とこのホストの互換性は未検証です。
+[個人利用の一括導入](docs/PERSONAL_SETUP.md)は作者公開の固定 **v0.2.17** セットアップを取得し、固定ホストをローカルでビルドし、ハッシュを検査して非公開設定を作ります。NVIDIA NR DLL はダウンロードしません。工程別の[Windows 手動手順](docs/WINDOWS_SETUP.md)と[ランタイム調査](docs/RUNTIME_SETUP_ja.md)も参照してください。ROCm、作者の AMD 向け NR ランタイム、AMF VideoSR1.1 は別物で、ROCm だけでは NR 用プロキシ・重み・NVIDIA DLL はそろいません。本リポジトリの MIT と、外部ランタイム・モデルの利用条件も別です。
 
 ## ComfyUI
 

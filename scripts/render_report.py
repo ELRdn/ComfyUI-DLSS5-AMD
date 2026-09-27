@@ -38,12 +38,12 @@ table{display:block;width:100%;overflow-x:auto;border-collapse:collapse;margin:2
 </style></head><body><header><div class="eyebrow">RESEARCH + IMPLEMENTATION / 2026.09.25</div>
 <h1>ComfyUI × AMD<br>Neural Rendering</h1><p>RX 9070 XT 向けの接続基盤、調査結果、実装証拠、そして実機検証に進むためのロードマップ。</p>
 <nav><a href="#report">調査・実装</a><a href="#roadmap">ロードマップ</a><a href="#sources">一次資料</a></nav></header><main class="wrap">
-<div class="status"><strong>現在の状態：開発用ブリッジ 0.1.0a1</strong><br>Python / CPU 契約テストは完了。Windows のビルド、RX 9070 XT での実推論、実 ComfyUI UI、画質・速度は未検証。外部 DLL・モデルは同梱していません。</div>
+<div class="status"><strong>初回スナップショット：2026-09-25 / 開発用ブリッジ 0.1.0a1</strong><br>以下の CPU テスト件数と未検証項目は初回納品時点の記録です。後日の RX 9070 XT 実機結果と現在の導入手順は README.md / README.jp.md と docs/TESTING.md を参照してください。外部 DLL・モデルは同梱していません。</div>
 '''
-    page += f'<div class="stats"><div class="stat"><strong>{tests["tests"]}</strong><span>自動テスト / failure {tests["failures"]} / skip {tests["skipped"]}</span></div><div class="stat"><strong>7</strong><span>ComfyUI ノード</span></div><div class="stat"><strong>3</strong><span>サンプル workflow ＋ API 形式</span></div><div class="stat"><strong>未検証</strong><span>実 GPU 推論・品質</span></div></div>'
+    page += f'<div class="stats"><div class="stat"><strong>{tests["tests"]}</strong><span>初回自動テスト / failure {tests["failures"]} / skip {tests["skipped"]}</span></div><div class="stat"><strong>7</strong><span>初回の ComfyUI ノード</span></div><div class="stat"><strong>3</strong><span>初回のサンプル workflow ＋ API 形式</span></div><div class="stat"><strong>当時未検証</strong><span>実 GPU 推論・品質</span></div></div>'
     page += ''.join(articles)
     page += '<footer>オフライン閲覧用。外部フォント・画像・解析スクリプトは読み込みません。コードと実行証拠は同じ ZIP 内にあります。</footer></main></body></html>'
-    (ROOT / 'REPORT.html').write_text(page, encoding='utf-8')
+    (ROOT / 'REPORT.html').write_bytes(page.encode('utf-8'))
 
 
 if __name__ == '__main__':

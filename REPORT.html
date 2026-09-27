@@ -17,9 +17,12 @@ table{display:block;width:100%;overflow-x:auto;border-collapse:collapse;margin:2
 </style></head><body><header><div class="eyebrow">RESEARCH + IMPLEMENTATION / 2026.09.25</div>
 <h1>ComfyUI × AMD<br>Neural Rendering</h1><p>RX 9070 XT 向けの接続基盤、調査結果、実装証拠、そして実機検証に進むためのロードマップ。</p>
 <nav><a href="#report">調査・実装</a><a href="#roadmap">ロードマップ</a><a href="#sources">一次資料</a></nav></header><main class="wrap">
-<div class="status"><strong>現在の状態：開発用ブリッジ 0.1.0a1</strong><br>Python / CPU 契約テストは完了。Windows のビルド、RX 9070 XT での実推論、実 ComfyUI UI、画質・速度は未検証。外部 DLL・モデルは同梱していません。</div>
-<div class="stats"><div class="stat"><strong>170</strong><span>自動テスト / failure 0 / skip 0</span></div><div class="stat"><strong>7</strong><span>ComfyUI ノード</span></div><div class="stat"><strong>3</strong><span>サンプル workflow ＋ API 形式</span></div><div class="stat"><strong>未検証</strong><span>実 GPU 推論・品質</span></div></div><section class="chapter" id="report"><div class="kicker">調査・実装レポート</div><h1>ComfyUI × AMD Neural Rendering</h1>
+<div class="status"><strong>初回スナップショット：2026-09-25 / 開発用ブリッジ 0.1.0a1</strong><br>以下の CPU テスト件数と未検証項目は初回納品時点の記録です。後日の RX 9070 XT 実機結果と現在の導入手順は README.md / README.jp.md と docs/TESTING.md を参照してください。外部 DLL・モデルは同梱していません。</div>
+<div class="stats"><div class="stat"><strong>170</strong><span>初回自動テスト / failure 0 / skip 0</span></div><div class="stat"><strong>7</strong><span>初回の ComfyUI ノード</span></div><div class="stat"><strong>3</strong><span>初回のサンプル workflow ＋ API 形式</span></div><div class="stat"><strong>当時未検証</strong><span>実 GPU 推論・品質</span></div></div><section class="chapter" id="report"><div class="kicker">調査・実装レポート</div><h1>ComfyUI × AMD Neural Rendering</h1>
 <h2>調査・実装レポート</h2>
+<blockquote>
+<p><strong>初回スナップショット（2026-09-25）。</strong> 以下の「現状」と未検証項目はこの日時の記録です。その後の RX 9070 XT 実機結果は <a href="docs/RX9070XT_VALIDATION_2026-09-26.md">実機検証</a>と<a href="docs/SCALING_VALIDATION_2026-09-27.md">拡大検証</a>、現在の導入方法は <a href="README.jp.md">README.jp.md</a>を参照してください。</p>
+</blockquote>
 <p><strong>対象:</strong> Windows / Radeon RX 9070 XT で、ComfyUI の画像・動画に DLSS 5 Neural Rendering 系の処理を接続する。<br />
 <strong>調査基準日:</strong> 2026-09-25<br />
 <strong>成果物:</strong> <code>ComfyUI-DLSS5-AMD</code> v0.1.0a1、テスト、ワークフロー、ロードマップ。<br />
@@ -208,7 +211,7 @@ ComfyUI IMAGE + 実行記録 JSON
 <p>今回の ZIP には外部 DLL、EXE、重み、ONNX、GPU カーネル、元ゲーム素材を含めない。利用者が正当な権限を持つローカルファイルを設定する方式とした。取得・抽出・利用・再配布の可否はこのレポートでは確定していない。公開バイナリ配布やモデル同梱を始める前に、対象ごとの条件を確認する。</p>
 <p><code>lmxxf</code> 系では MIT の実装と、GPL のホストや外部フレームワークを組み合わせる経路がある。高速化に採用する部分を選んだ時点で、依存関係単位のライセンス表を更新する。[S05, S06]</p>
 <h2>11. 今回の検証と残ったゲート</h2>
-<p>自動テストの正本は <code>evidence/test-summary.json</code>、個別結果は <code>evidence/junit.xml</code>、実行ログは <code>evidence/pytest.log</code> にある。カバレッジは <code>evidence/coverage-summary.txt</code> と <code>coverage.json</code>。数字は最終パッケージの証拠を参照し、開発途中のテスト件数と混ぜない。</p>
+<p>初回納品時点の自動テスト記録は <code>evidence/test-summary.json</code>、個別結果は <code>evidence/junit.xml</code>、実行ログは <code>evidence/pytest.log</code> にある。カバレッジは <code>evidence/coverage-summary.txt</code> と <code>evidence/coverage.json</code>。これらは 2026-09-25 の記録であり、その後の実機検証や現在のテスト件数を示さない。</p>
 <p>実 FFmpeg テストでは、合成した 6 フレームの短い SDR 動画に PCM 音声を付け、チャンク 1・2・4 で処理した。CPU reference 経路の画素とフレーム順序を元データと比較し、音声ペイロードをハッシュ照合する。これはファイル処理経路の検証である。</p>
 <p>ネイティブ経路の単体テストは、明示的な偽エンジンを使う。テストダブルは正しい／壊れた JSON、短い raw、途中終了などを作り、ブリッジの判断を検証するためのもの。実 DLSS 推論や GPU 対応の証拠として数えない。</p>
 <p>未実施の項目は、Windows ビルド、ネイティブ DLL ロード、9070 XT の実行、実 ComfyUI UI、画質、ちらつき、GPU 性能、長時間安定性である。これらを別々の完了条件にしたのが <code>ROADMAP.md</code> である。</p>
@@ -223,27 +226,27 @@ ComfyUI IMAGE + 実行記録 JSON
 </section><section class="chapter" id="roadmap"><div class="kicker">完了条件つきロードマップ</div><h1>Roadmap — 実機証拠を条件に進める開発計画</h1>
 <p><strong>対象:</strong> ComfyUI-DLSS5-AMD / RX 9070 XT / Windows ファースト<br />
 <strong>基準日:</strong> 2026-09-25<br />
-<strong>現在の版:</strong> 0.1.0a1、開発用・実 GPU 未検証</p>
+<strong>現在の版:</strong> 0.1.0a1、開発用。2026-09-26 に RX 9070 XT / 640×360 SDR の実ニューラル処理と ComfyUI PNG 保存を確認。2026-09-27 に NR と AMF VideoSR1.1 の統合画像・短い動画を ComfyUI API で確認。R2/R3 の全ゲート完了ではない。<a href="docs/RX9070XT_VALIDATION_2026-09-26.md">NR 検証記録</a>・<a href="docs/SCALING_VALIDATION_2026-09-27.md">拡大検証記録</a></p>
 <p>この計画は機能一覧ではなく、各段階に「先行条件」「実装」「テスト」「合格条件」「失敗した場合」を持たせる。未検証の性能や画質を保証しない。予定日や所要時間ではなく、証拠が揃った順に進める。</p>
 <h2>0. 到達点の定義</h2>
 <p><strong>最低限の成功:</strong> 9070 XT 上で、正当に利用可能なランタイムと固定したホストを使い、1 枚の IMAGE を処理し、完了記録・形状・画像内容・キャンセルを検証できる。</p>
 <p><strong>使える初版:</strong> 実 ComfyUI で画像と短い動画が再現可能に処理される。失敗時に原画像コピーへ黙って切り替わらず、品質が悪い素材を判別でき、再現設定とログが残る。</p>
 <p><strong>公開可能な版:</strong> 対応環境・依存ライセンス・既知の制限・実測を公開できる。新規インストールでも手順が成立し、動画と長時間運用の回帰が通る。モデル／DLL の配布権を曖昧にしない。</p>
-<p><strong>今回の完了:</strong> R0、および R1 の実装・CPU 契約テスト。Windows ビルドや GPU 推論を R1 完了に含めない。</p>
+<p><strong>初回納品時の完了（2026-09-25）:</strong> R0、および R1 の実装・CPU 契約テスト。Windows ビルドや GPU 推論は当時未実施。現在の限定的な実機結果は冒頭の検証記録を参照。</p>
 <h2>1. 全体ルート</h2>
 <pre><code class="language-text">R0 出所・仕様の確認                 [完了]
   ↓
 R1 Python bridge / CPU 契約試験      [実装・テスト完了]
   ↓
-R2 Windows build + 9070 XT 1枚       [未実施／最優先]
+R2 Windows build + 9070 XT 1枚       [640×360実行済み／残りのゲートあり]
   ↓
-R3 ComfyUI 実接続・短い動画          [コードあり／実機ゲート未実施]
+R3 ComfyUI 実接続・短い動画          [画像と3フレーム動画のAPI実行済み／残りのゲートあり]
   ↓
 R4 画質・意味保持・時間安定性        [未実施]
   ↓
 R5 持続セッション・性能最適化        [設計のみ]
   ↓
-R6 配布・互換性・運用               [未実施]
+R6 配布・互換性・運用               [ソース公開・導入文書あり／新規環境と長時間運用は未検証]
 
 別研究枝: ONNX / 正規の補助入力付き temporal SR / 高ビット深度
 </code></pre>
@@ -294,7 +297,7 @@ R6 配布・互換性・運用               [未実施]
 <p><code>evidence/hardware/R2/</code> に手動の環境票、公開可能なログ抜粋、測定値を保存する。私物画像・DLL・重み・個人パスは公開しない。<strong>このゲート通過後に初めて「9070 XT で 1 枚の実行確認済み」と表現する。</strong></p>
 <h2>R3 — ComfyUI 実行と短い動画</h2>
 <h3>R3.1 ComfyUI の実接続</h3>
-<p>実際の custom_nodes フォルダーに配置し、起動ログ、7 ノードの一覧、サンプル JSON の読み込みを確認する。classic API の対応版を記録し、V3 移行を勝手に同時進行しない。</p>
+<p>実際の custom_nodes フォルダーに配置し、起動ログ、9 ノードの一覧、サンプル JSON の読み込みを確認する。classic API の対応版を記録し、V3 移行を勝手に同時進行しない。</p>
 <p><strong>合格:</strong> CPU 診断 workflow が動作。ネイティブ workflow が R2 と同じ入力・設定で同等の出力を返す。更新したランタイムや設定で古い Comfy キャッシュを無条件に再利用しない。キュー中止が伝わる。</p>
 <h3>R3.2 バッチと素材境界</h3>
 <p>同一画像 A を連続処理し、A→B→A の順でも A の結果が他フレームに混ざらないことを確認。別解像度、別バッチ、別ジョブ間の状態混入を試す。1、2、4 枚のバッチを比較する。</p>
@@ -536,6 +539,6 @@ R6 配布・互換性・運用               [未実施]
 </tbody>
 </table>
 <h2>確認範囲の限界</h2>
-<p>これは公開 README とコード契約の調査であり、すべての upstream コードを監査したという意味ではない。外部ホストの全 native ソースをローカルでビルドしたわけでもない。取得できなかったページや前回答の性能値は、実装の確定根拠から除外した。</p>
-<p>今回の作業環境では一般の GitHub clone がネットワーク解決に失敗したため、公開資料は GitHub コネクター／Web から読んだ。<code>fetch_upstream.py</code> のユーザー環境でのネットワーク取得と Windows ビルドは未実行である。</p>
+<p>初回調査は公開 README とコード契約を対象とし、すべての upstream コードを監査したという意味ではない。外部ホストのローカルビルドと実行は下記の追加検証で行った。取得できなかったページや前回答の性能値は、実装の確定根拠から除外した。</p>
+<p>初回調査環境では一般の GitHub clone がネットワーク解決に失敗したため、公開資料は GitHub コネクター／Web から読んだ。<strong>2026-09-26 の追記:</strong> ユーザー環境では固定ソースの取得・ハッシュ照合、Windows ビルド、640×360 の実ニューラル処理まで完了した。追加の実行証拠と範囲は <a href="RX9070XT_VALIDATION_2026-09-26.md">実機検証記録</a> を参照。</p>
 </section><footer>オフライン閲覧用。外部フォント・画像・解析スクリプトは読み込みません。コードと実行証拠は同じ ZIP 内にあります。</footer></main></body></html>

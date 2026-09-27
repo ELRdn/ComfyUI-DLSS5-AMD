@@ -4,6 +4,8 @@
 
 [NR 実機検証記録](RX9070XT_VALIDATION_2026-09-26.md)と[拡大検証記録](SCALING_VALIDATION_2026-09-27.md)から続ける。画像と3フレーム動画の短い経路は実行済み。次に何を検証するかは依頼範囲に合わせ、ROADMAP R2/R3 の未実施ゲートを一括で合格扱いしない。
 
+新規導入の入口は [個人利用セットアップ](PERSONAL_SETUP.md)。この PC での既存実機成功と、新しい PC での一括導入再現は別の検証項目として扱う。
+
 ## 現状
 
 0.1.0a1。Python bridge、Comfy classic ノード 9 種、CLI、RGBA8 adapter、設定 hash、実行証拠チェック、動画 FFV1/MKV、テスト、workflow は実装済み。2026-09-26 に RX 9070 XT で異なる 640×360 SDR 合成画像 2 枚、CLI、実 ComfyUI API のニューラル処理と PNG 保存を確認した。2026-09-27 には NR を入力サイズで実行し、後段の AMD AMF VideoSR1.1 で拡大する統合画像・動画ノードも API から実行した。画像は 2 倍・8 倍、音声付き 3 フレーム動画は 2 倍を確認した。[拡大検証記録](SCALING_VALIDATION_2026-09-27.md)を参照。自然写真の品質、長い動画、音声 timestamp 同期、持続運用は未検証。

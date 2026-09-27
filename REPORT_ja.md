@@ -1,6 +1,8 @@
 # ComfyUI × AMD Neural Rendering
 ## 調査・実装レポート
 
+> **初回スナップショット（2026-09-25）。** 以下の「現状」と未検証項目はこの日時の記録です。その後の RX 9070 XT 実機結果は [実機検証](docs/RX9070XT_VALIDATION_2026-09-26.md)と[拡大検証](docs/SCALING_VALIDATION_2026-09-27.md)、現在の導入方法は [README.jp.md](README.jp.md)を参照してください。
+
 **対象:** Windows / Radeon RX 9070 XT で、ComfyUI の画像・動画に DLSS 5 Neural Rendering 系の処理を接続する。  
 **調査基準日:** 2026-09-25  
 **成果物:** `ComfyUI-DLSS5-AMD` v0.1.0a1、テスト、ワークフロー、ロードマップ。  
@@ -174,7 +176,7 @@ HDR、linear-light 動画、BT.2020 動画は明示的に拒否する。CLI の 
 
 ## 11. 今回の検証と残ったゲート
 
-自動テストの正本は `evidence/test-summary.json`、個別結果は `evidence/junit.xml`、実行ログは `evidence/pytest.log` にある。カバレッジは `evidence/coverage-summary.txt` と `coverage.json`。数字は最終パッケージの証拠を参照し、開発途中のテスト件数と混ぜない。
+初回納品時点の自動テスト記録は `evidence/test-summary.json`、個別結果は `evidence/junit.xml`、実行ログは `evidence/pytest.log` にある。カバレッジは `evidence/coverage-summary.txt` と `evidence/coverage.json`。これらは 2026-09-25 の記録であり、その後の実機検証や現在のテスト件数を示さない。
 
 実 FFmpeg テストでは、合成した 6 フレームの短い SDR 動画に PCM 音声を付け、チャンク 1・2・4 で処理した。CPU reference 経路の画素とフレーム順序を元データと比較し、音声ペイロードをハッシュ照合する。これはファイル処理経路の検証である。
 
