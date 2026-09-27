@@ -1,0 +1,12 @@
+{
+  "1": {
+    "class_type": "AMDNRVideoUpscaleFile",
+    "inputs": {
+      "video": "PUT_A_CLIP_IN_COMFY_INPUT",
+      "max_frames": 300,
+      "chunk_frames": 1,
+      "factor": 2,
+      "mix": 1.0
+    }
+  }
+}

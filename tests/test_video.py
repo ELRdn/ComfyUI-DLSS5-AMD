@@ -4,10 +4,12 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
+from amd_nr.amf import AMFScaler
 from amd_nr.backends import ReferenceBackend
 from amd_nr.contracts import Limits
 from amd_nr.errors import ContractError, ResourceError, RunCancelled
@@ -143,3 +145,49 @@ def test_coarse_timebase_must_not_hide_a_frame_shift():
     with pytest.raises(ContractError):
         verify_timestamps({'frames': [{'best_effort_timestamp_time': str((i + 1) / 24)}
                                      for i in range(6)]}, info)
+
+
+class RepeatAMF(AMFScaler):
+    """Test double for video orchestration; no hardware inference claim."""
+
+    def __init__(self, *, fail=False):
+        self.artifact = SimpleNamespace(sha256='f' * 64)
+        self.fail = fail
+
+    def scale_rgb8(self, frames, factor, work_root):
+        if self.fail:
+            raise RuntimeError('AMF test failure')
+        scaled = np.repeat(np.repeat(frames, factor, axis=1), factor, axis=2)
+        return scaled, {'algorithm': 'TEST_DOUBLE', 'factor': factor}
+
+
+@pytest.mark.ffmpeg
+def test_video_upscale_preserves_frame_order_and_audio(clip, tmp_path):
+    source, frames = clip
+    output = tmp_path / 'upscaled.mkv'
+    report_path = process_video(source, output, ReferenceBackend(), work_root=tmp_path / 'runs',
+                                chunk_frames=2, max_frames=6, limits=Limits(min_free_disk_bytes=0),
+                                upscaler=RepeatAMF(), upscale_factor=2)
+    report = read_json(report_path)
+    assert report['status'] == 'completed'
+    assert report['video']['output_width'] == 64 and report['video']['output_height'] == 48
+    assert len(report['chunks']) == 3 and report['audio_payload_sha256']
+    decoded = subprocess.run(['ffmpeg', '-nostdin', '-v', 'error', '-i', str(output),
+                              '-map', '0:v:0', '-pix_fmt', 'rgb24', '-f', 'rawvideo', '-'],
+                             capture_output=True, check=True, timeout=15).stdout
+    actual = np.frombuffer(decoded, dtype=np.uint8).reshape(6, 48, 64, 3)
+    expected = np.repeat(np.repeat(frames, 2, axis=1), 2, axis=2)
+    np.testing.assert_array_equal(actual, expected)
+
+
+@pytest.mark.ffmpeg
+def test_video_upscale_failure_never_publishes(clip, tmp_path):
+    source, _ = clip
+    output = tmp_path / 'no-upscaled-output.mkv'
+    with pytest.raises(RuntimeError, match='AMF test failure'):
+        process_video(source, output, ReferenceBackend(), work_root=tmp_path / 'runs',
+                      max_frames=6, limits=Limits(min_free_disk_bytes=0),
+                      upscaler=RepeatAMF(fail=True), upscale_factor=2)
+    assert not output.exists()
+    report = read_json(next((tmp_path / 'runs').glob('video-*/video-manifest.json')))
+    assert report['status'] == 'failed'

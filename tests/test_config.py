@@ -31,6 +31,8 @@ def test_config_roundtrip_and_fingerprint(native_config, tmp_path, monkeypatch):
 @pytest.mark.parametrize('key,value', [
     ('schema', True), ('schema', 2), ('trusted_local_artifacts', False),
     ('hip_device', '0,1'), ('hip_device', 1), ('hip_device', '１'),
+    ('amf_expected_device_id', '0x7550'), ('amf_expected_device_id', '755'),
+    ('amf_expected_device_id', 'zzzz'), ('amf_expected_device_id', True),
     ('fast_isolated', 'yes'), ('fast_isolated', True),
     ('timeout_seconds', 0), ('timeout_seconds', True), ('worker_seconds', 11),
     ('max_width', 9000), ('work_root', 'relative/path'), ('unknown_option', 1),
@@ -51,6 +53,14 @@ def test_fast_mode_requires_specific_opt_in(native_config, tmp_path):
     path = tmp_path / 'config.json'
     path.write_text(json.dumps(data))
     assert load_native_config(path).fast_isolated
+
+
+def test_amf_device_id_is_normalized(native_config, tmp_path):
+    data = payload(native_config)
+    data['amf_expected_device_id'] = 'ABCD'
+    path = tmp_path / 'config.json'
+    path.write_text(json.dumps(data))
+    assert load_native_config(path).amf_expected_device_id == 'abcd'
 
 
 def test_missing_config_and_no_fallback(tmp_path, monkeypatch):

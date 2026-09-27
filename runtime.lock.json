@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "reviewed_date": "2026-09-26",
+  "repository": "https://github.com/danielblnc/DLSS-NR-on-AMD",
+  "tag": "v0.2.17",
+  "release_page": "https://github.com/danielblnc/DLSS-NR-on-AMD/releases/tag/v0.2.17",
+  "license_url": "https://github.com/danielblnc/DLSS-NR-on-AMD/blob/v0.2.17/LICENSE",
+  "license_scope": "Personal, non-commercial use only; no redistribution of installer or runtime.",
+  "installer": {
+    "name": "dlssnr_on_amd_setup.exe",
+    "url": "https://github.com/danielblnc/DLSS-NR-on-AMD/releases/download/v0.2.17/dlssnr_on_amd_setup.exe",
+    "bytes": 7538418,
+    "sha256": "4fcd167d07bc4964eaf9162aa8f4f11e852b91bf866b28cb48d45934022440bc"
+  },
+  "model": {
+    "name": "nvngx_dlssnr.dll",
+    "file_version": "310.8.0.0",
+    "machine": 34404,
+    "source": "User's legitimately obtained local copy; no model download URL is provided."
+  },
+  "proxy": {
+    "bytes": 7248384,
+    "sha256": "bc97f3b06718e19042acaf227bfe15d1e43d4977f9dc2e39994fcc511445ff4e"
+  },
+  "weights": {
+    "name": "dlssnr_on_amd_weights.bin",
+    "bytes": 147689451,
+    "sha256": "6bf8dc931ef3ccffe18c82de26ab374156e7f19539ffcf8eabaa25dca5cf15ab"
+  },
+  "host_commit": "9303dfaa14c2ca83e237ff18318bdfc0b767f6fb",
+  "evidence_url": "https://github.com/eikkapine/DLSS5-AMD-Video/blob/9303dfaa14c2ca83e237ff18318bdfc0b767f6fb/native/PERFORMANCE.md",
+  "installer_invocation_source": "https://github.com/eikkapine/DLSS5-AMD-Swapper/blob/4272aa371162fc4e094d470ffe5d31e5411436c9/app/Dlss5AmdSwapper/Services/DirectGameInstallerService.cs",
+  "compatibility": "Pinned color-only host baseline. v0.3.x/v0.4.x are not validated by this adapter."
+}

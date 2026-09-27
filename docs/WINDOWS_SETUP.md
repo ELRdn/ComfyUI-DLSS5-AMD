@@ -1,6 +1,6 @@
 # Windows / RX 9070 XT 導入と最初の検証
 
-**重要:** この手順は、公開されたホスト仕様に基づいて作成・コードレビューしたものです。今回の開発環境では Windows ビルドと GPU 推論を実行していません。ドライバー、Python、PyTorch を自動更新する手順ではありません。
+**確認範囲:** 2026-09-26 に Windows ビルド、RX 9070 XT の 640×360 SDR ニューラル処理、ComfyUI API での PNG 保存を確認しました。通常の待機設定での失敗と、ローカル検証後に有効化した fast-isolated 設定は [実機記録](RX9070XT_VALIDATION_2026-09-26.md) に記載しています。ドライバー、Python、PyTorch を自動更新する手順ではありません。
 
 ## 1. フォルダーと Python を確認
 
@@ -70,6 +70,8 @@ PowerShell がスクリプト実行を拒否する環境では、セキュリテ
 
 ## 4. 正当に利用できるローカルランタイムを設定
 
+`nvngx_dlssnr.dll` 310.8.0.0 を用意できる場合は、[ランタイム導入ガイド](RUNTIME_SETUP_ja.md) の `scripts/setup_runtime.py` を利用できます。固定 v0.2.17 の公式セットアップ取得、ローカル生成、ハッシュ照合、設定作成をまとめて実行します。以下は既に 3 ファイルを持っている場合の手動設定です。
+
 選択したホストが要求する、対応版のローカルファイルを別の非公開フォルダーに用意します。
 
 ```text
@@ -125,7 +127,25 @@ ComfyUI を再起動し、起動ログに読み込みエラーがないことを
 
 次に `02_native_image_EXPERIMENTAL.json` を読み込みます。R2 と同じ入力で処理し、CLI と同じ条件になるか比較します。effect_mask は任意入力です。LoadImage の反転 alpha をそのまま接続するのではなく、「白で適用する」範囲を確認してください。
 
-ネイティブ処理後に通常の超解像を使う場合は、別ノードとして接続します。`AMDNRResize` は bicubic の通常拡大で、学習済み超解像や FSR4 ではありません。
+従来の 05 ワークフローは、ネイティブ処理後に外部の AMF ノードを接続する例です。`AMDNRResize` は bicubic の通常拡大で、学習済み超解像や FSR4 ではありません。
+
+### 1ノードの NR + AMF VideoSR1.1
+
+画像・動画の拡大には、`sr_amf` と AMF ハードウェアアクセラレーションを備えたローカル FFmpeg を用意します。既存の NR 用 `backend.local.json` に、その実行ファイルの実体パスと SHA-256 を固定します。`ffmpeg` コマンドが PATH にあるだけでは不十分です。この PC では通常の PATH が AMF 非対応版を選ぶため、対応版を明示しました。
+
+```powershell
+& $Py scripts/setup_runtime.py configure-amf `
+  --ffmpeg 'C:\path\to\AMF-enabled\ffmpeg.exe' `
+  --config "$Repo\config\backend.local.json"
+```
+
+ComfyUI に別コピーをインストールした場合は、`--config` に**そのコピーの** `config/backend.local.json` を指定します。設定済みの異なる FFmpeg を更新する際は内容を確認し、`--replace` を付けます。ツールは実行ファイル、`sr_amf` フィルター、AMF hwaccel を検査します。ダウンロード、ドライバー変更、CPU 拡大への切替は行いません。
+
+RX 9070 XT が PCI デバイス ID `7550` のこの PC では、上記コマンドへ `--device-id 7550` を追加して、毎回の AMF ログが同じ GPU を選んだか検査しています。別の PC ではデバイス ID を確認してから指定するか、省略します。指定した ID と異なる GPU が選ばれた場合、出力を採用しません。
+
+ComfyUI 再起動後、画像は `workflows/06_nr_amf_image_ONE_NODE_EXPERIMENTAL.json`、動画は `workflows/07_nr_amf_video_ONE_NODE_EXPERIMENTAL.json` を読み込みます。06 は画像を選び、factor=2 から始めます。07 は短い SDR/CFR 動画を ComfyUI input 直下へ置いて選び、まず `max_frames` を実際のフレーム数に合わせます。どちらも mix を同じノードで設定できます。05 のような外部アップスケーラーノードは不要です。
+
+NR の入力上限は既定で 1920×1080、後段の拡大出力は各辺 8192 以下、factor は整数 2～8 です。動画は音声をコピーし、可逆 FFV1/MKV を生成します。容量が大きくなるため、空きディスクの検査を行います。動画も深度・動きベクトル・履歴を NR に供給しないため、ゲームのリアルタイム経路とは異なります。[実機の画像・動画結果](SCALING_VALIDATION_2026-09-27.md)を参照してください。
 
 ## 7. 動画へ進む
 

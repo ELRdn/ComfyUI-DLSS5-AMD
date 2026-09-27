@@ -2,7 +2,7 @@
 
 This is a local, experimental bridge, not a sandbox for untrusted code. Review the native host and every executable/runtime artifact before enabling a configuration. A matching hash detects a change relative to a pin; it does not authenticate a publisher, prove a build is reproducible, or confer a license.
 
-Workflow JSON cannot choose an executable, DLL, shell command, or arbitrary video source path. Only trusted server configuration chooses native artifacts. Commands use argv with shell=False; local child-only HIP device selection does not alter the system environment. No routine processing sends images or logs over the network. The explicit source-fetch helper is the only provided network operation.
+Workflow JSON cannot choose an executable, DLL, shell command, or arbitrary video source path. Only trusted server configuration chooses native artifacts. Commands use argv with shell=False; local child-only HIP device selection does not alter the system environment. No routine processing sends images or logs over the network. Explicit source-fetch and runtime-setup helpers can download pinned public source or the original runtime installer. The setup helper never downloads the NVIDIA model DLL, verifies the installer and generated artifacts, uses a new private folder, and refuses to overwrite an existing configuration.
 
 Use a local, non-shared work directory writable only by your account. This code is not a hardened multi-tenant service. Local attackers who can modify your Python, executable, configuration, runtime, or work-directory hierarchy are outside its trust boundary. A public ComfyUI server may expose queue/file operations; this project does not make that deployment safe.
 

@@ -12,12 +12,19 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_workflow_references_and_node_types(file):
     data = json.loads(file.read_text())
     known = set(NODE_CLASS_MAPPINGS) | {'LoadImage', 'SaveImage'}
+    if file.name.startswith('05_rx9070xt_nr_then_amf_sr_'):
+        known.add('AMDAMFVideoUpscale')  # Separate installed plugin; not bundled here.
     if '.api.' in file.name:
         for node in data.values():
             assert node['class_type'] in known
             if node['class_type'] in NODE_CLASS_MAPPINGS:
                 required = NODE_CLASS_MAPPINGS[node['class_type']].INPUT_TYPES()['required']
                 assert set(required) <= set(node['inputs'])
+            if node['class_type'] == 'AMDAMFVideoUpscale':
+                assert node['inputs']['backend'] == 'amf_sr'
+                assert node['inputs']['fallback_policy'] == 'error'
+                assert node['inputs']['sr_algorithm'] == 'sr1-1'
+                assert node['inputs']['scale'] == 2.0
             for value in node['inputs'].values():
                 if isinstance(value, list):
                     assert value[0] in data and isinstance(value[1], int)
@@ -46,7 +53,7 @@ def test_lock_and_git_blob_algorithm():
 
 
 def test_example_is_disabled_and_no_torch_install():
-    assert len(list((ROOT / "workflows").glob("*.json"))) == 6
+    assert len(list((ROOT / "workflows").glob("*.json"))) == 14
     data = json.loads((ROOT / 'config' / 'backend.example.json').read_text())
     assert data['trusted_local_artifacts'] is False
     assert data['fast_isolated'] is False

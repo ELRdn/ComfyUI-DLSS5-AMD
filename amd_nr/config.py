@@ -36,6 +36,8 @@ class NativeConfig:
     fast_isolated: bool = False
     max_width: int = 1920
     max_height: int = 1080
+    amf_ffmpeg: Artifact | None = None
+    amf_expected_device_id: str | None = None
 
     def verify(self) -> None:
         self.engine.verify()
@@ -54,7 +56,9 @@ class NativeConfig:
                 "fast_isolated": self.fast_isolated,
                 "timeout_seconds": self.timeout_seconds,
                 "worker_seconds": self.worker_seconds,
-                "device_execution_independently_verified": False}
+                "device_execution_independently_verified": False,
+                "amf_ffmpeg_sha256": self.amf_ffmpeg.sha256 if self.amf_ffmpeg else None,
+                "amf_expected_device_id": self.amf_expected_device_id}
 
     def stage(self, job: Path) -> Path:
         """Copy fixed filenames into a new private directory; verify copied bytes."""
@@ -98,7 +102,7 @@ def load_native_config(path: Path | None = None) -> NativeConfig:
     data = read_json(path)
     allowed = {"schema", "trusted_local_artifacts", "engine", "runtime", "work_root", "hip_device",
                "timeout_seconds", "worker_seconds", "fast_isolated", "fast_mode_verified_for_these_hashes",
-               "max_width", "max_height"}
+               "max_width", "max_height", "amf_ffmpeg", "amf_expected_device_id"}
     if set(data) - allowed:
         raise ConfigurationError(f"Unknown configuration keys: {sorted(set(data) - allowed)}")
     if type(data.get("schema")) is not int or data["schema"] != 1:
@@ -111,6 +115,10 @@ def load_native_config(path: Path | None = None) -> NativeConfig:
     hip = data.get("hip_device")
     if hip is not None and (not isinstance(hip, str) or not re.fullmatch(r"[0-9]+", hip)):
         raise ConfigurationError("hip_device must be null or one numeric string. Device 1 is not universal.")
+    amf_device = data.get("amf_expected_device_id")
+    if amf_device is not None and (not isinstance(amf_device, str) or
+                                   not re.fullmatch(r"[0-9a-fA-F]{4,8}", amf_device)):
+        raise ConfigurationError("amf_expected_device_id must be a 4-8 digit hexadecimal PCI device ID or null.")
     if type(data.get("fast_isolated", False)) is not bool:
         raise ConfigurationError("fast_isolated must be Boolean.")
     fast = data.get("fast_isolated", False)
@@ -128,7 +136,10 @@ def load_native_config(path: Path | None = None) -> NativeConfig:
     return NativeConfig(engine=_artifact(data.get("engine"), "engine"),
                         runtime={name: _artifact(runtime[name], name) for name in RUNTIME_NAMES},
                         work_root=_absolute(data.get("work_root"), "work_root"), hip_device=hip,
-                        fast_isolated=fast, **numbers)
+                        fast_isolated=fast,
+                        amf_ffmpeg=_artifact(data["amf_ffmpeg"], "amf_ffmpeg")
+                        if data.get("amf_ffmpeg") is not None else None,
+                        amf_expected_device_id=amf_device.lower() if amf_device else None, **numbers)
 
 
 def config_fingerprint() -> str:
@@ -143,7 +154,7 @@ def config_fingerprint() -> str:
     try:
         config = load_native_config(path)
         parts = [sha256_file(path)]
-        for artifact in [config.engine, *config.runtime.values()]:
+        for artifact in [config.engine, *config.runtime.values(), *([config.amf_ffmpeg] if config.amf_ffmpeg else [])]:
             stat = artifact.path.stat()
             parts.append(f"{stat.st_size}:{stat.st_mtime_ns}:{stat.st_ctime_ns}")
         return "|".join(parts)

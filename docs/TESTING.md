@@ -20,7 +20,7 @@ FFmpeg と FFprobe がなければ実動画のテストは skip になる。し�
 | Native 契約 | 偽 EXE 役の Python subprocess を介した正常／異常報告 | DLL ロード・実 GPU 推論 |
 | Comfy メソッド | package import・INPUT_TYPES・tensor 入出力 | 実 Comfy サーバー／フロントエンドの互換性 |
 | FFmpeg 実処理 | 6 フレームの可逆画素・順序・音声 hash の一致 | 長時間、全 codec、完全な AV timestamp 保持 |
-| Windows 実機 | **未実施** | この欄を CPU テストで代用しない |
+| Windows 実機 | RX 9070 XT / v0.2.17 の 640×360～1920×1080 SDR 入力で NR 完了。AMF VideoSR1.1 は 640×360 起点で最大 8 倍、1920×1080 起点で最大 4 倍の短い合成画像試験に成功。統合ノードで画像 2 倍・8 倍、音声付き 3 フレーム動画 2 倍を ComfyUI API から保存。[NR 実機記録](RX9070XT_VALIDATION_2026-09-26.md)・[拡大実機記録](SCALING_VALIDATION_2026-09-27.md) | 自然画像の品質、長い動画、音声 timestamp 同期、長時間安定性、UI からの 06/07 手動実行 |
 
 `tests/support/fake_engine.py` は、先頭からテスト専用と記載したエンジン役である。ハッシュ・報告・process の挙動だけを試す。画像の赤チャネルを人工的に変える場合があるが、ニューラル推論ではない。作例として使わない。
 

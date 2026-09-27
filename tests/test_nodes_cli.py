@@ -11,7 +11,7 @@ import torch
 
 from amd_nr import nodes
 from amd_nr.cli import load_image, main
-from amd_nr.errors import ContractError
+from amd_nr.errors import ConfigurationError, ContractError
 
 
 def test_root_comfy_style_dynamic_import():
@@ -22,7 +22,7 @@ def test_root_comfy_style_dynamic_import():
     sys.modules[name] = module
     try:
         spec.loader.exec_module(module)
-        assert len(module.NODE_CLASS_MAPPINGS) == 7
+        assert len(module.NODE_CLASS_MAPPINGS) == 9
         assert module.NODE_CLASS_MAPPINGS.keys() == module.NODE_DISPLAY_NAME_MAPPINGS.keys()
     finally:
         for key in list(sys.modules):
@@ -65,6 +65,15 @@ def test_invalid_node_inputs(rgb):
     with pytest.raises(ContractError): nodes.AMDNRResize().resize(torch.from_numpy(rgb), True)
     with pytest.raises(ContractError): nodes.AMDNRApply().apply(torch.from_numpy(rgb), {'mix': 1})
     with pytest.raises(ContractError): nodes.AMDNRCompare().compare(torch.from_numpy(rgb), torch.zeros(1, 2, 3, 3))
+
+
+def test_combined_node_refuses_missing_amf_before_native(rgb, native_config, monkeypatch):
+    monkeypatch.setattr(nodes, 'load_native_config', lambda: native_config)
+    monkeypatch.setattr(nodes, 'run_images', lambda *args, **kwargs: pytest.fail('NR ran before AMF configuration'))
+    with pytest.raises(ConfigurationError, match='AMF VideoSR is not configured'):
+        nodes.AMDNRRenderUpscale().apply(torch.from_numpy(rgb[:1]), factor=2)
+    with pytest.raises(ContractError, match='integer from 2 to 8'):
+        nodes.AMDNRRenderUpscale().apply(torch.from_numpy(rgb[:1]), factor=True)
 
 
 def test_diagnostics_does_not_execute_native(tmp_path, monkeypatch):

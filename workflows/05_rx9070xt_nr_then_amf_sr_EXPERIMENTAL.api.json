@@ -1,0 +1,96 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "input.png"
+    }
+  },
+  "2": {
+    "class_type": "AMDNRSettings",
+    "inputs": {
+      "mix": 1.0
+    }
+  },
+  "3": {
+    "class_type": "AMDNRApply",
+    "inputs": {
+      "image": [
+        "1",
+        0
+      ],
+      "settings": [
+        "2",
+        0
+      ]
+    }
+  },
+  "4": {
+    "class_type": "AMDNRCompare",
+    "inputs": {
+      "original": [
+        "1",
+        0
+      ],
+      "processed": [
+        "3",
+        0
+      ]
+    }
+  },
+  "5": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ],
+      "filename_prefix": "AMDNR_RX9070XT_NATIVE_AB_EXPERIMENTAL"
+    }
+  },
+  "6": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "3",
+        0
+      ],
+      "filename_prefix": "AMDNR_RX9070XT_NATIVE_EXPERIMENTAL"
+    }
+  },
+  "7": {
+    "class_type": "AMDNRDiagnostics",
+    "inputs": {}
+  },
+  "8": {
+    "class_type": "AMDAMFVideoUpscale",
+    "inputs": {
+      "images": [
+        "3",
+        0
+      ],
+      "resize_mode": "scale",
+      "scale": 2.0,
+      "width": 1920,
+      "height": 1080,
+      "divisible_by": 2,
+      "backend": "amf_sr",
+      "fallback_policy": "error",
+      "sr_algorithm": "sr1-1",
+      "sharpness": -1.0,
+      "keep_ratio": false,
+      "fill": false,
+      "ffmpeg_path": "ffmpeg",
+      "timeout_seconds": 120
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "images": [
+        "8",
+        0
+      ],
+      "filename_prefix": "AMDNR_RX9070XT_AMF_SR_2X_EXPERIMENTAL"
+    }
+  }
+}

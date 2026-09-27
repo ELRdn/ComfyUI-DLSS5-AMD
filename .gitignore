@@ -19,6 +19,7 @@ third_party/
 *.rgba
 *.partial
 local-build/
+dlssnr_setup/
 third_party/
 selftest-output/
 .coverage

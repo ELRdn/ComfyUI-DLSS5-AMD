@@ -16,6 +16,7 @@ from typing import Callable
 
 import numpy as np
 
+from .amf import AMFScaler, output_size
 from .backends import NativeBackend, ReferenceBackend
 from .contracts import Limits, spec_for_shape, validate_mix
 from .errors import ConfigurationError, ContractError, EvidenceError, ResourceError, RunCancelled
@@ -112,6 +113,7 @@ def _audio_hashes(ffmpeg: str, source: Path, count: int, job: Path,
 def process_video(source: Path, destination: Path, backend: NativeBackend | ReferenceBackend, *,
                   work_root: Path, mix: float = 1.0, chunk_frames: int = 1,
                   max_frames: int = 300, limits: Limits = Limits(),
+                  upscaler: AMFScaler | None = None, upscale_factor: int = 1,
                   cancel: Callable[[], None] | None = None,
                   progress: Callable[[int, int], None] | None = None) -> Path:
     mix = validate_mix(mix)
@@ -126,6 +128,10 @@ def process_video(source: Path, destination: Path, backend: NativeBackend | Refe
         raise ContractError("chunk_frames must be a positive integer within the image batch limit.")
     if type(max_frames) is not int or not 1 <= max_frames <= 10000:
         raise ContractError("max_frames must be 1..10000; use deliberate short test clips.")
+    if upscaler is None and upscale_factor != 1:
+        raise ContractError("An AMF upscaler is required when video dimensions change.")
+    if upscaler is not None and not isinstance(upscaler, AMFScaler):
+        raise ContractError("Expected a server-configured AMF scaler.")
     ffmpeg, ffprobe = shutil.which("ffmpeg"), shutil.which("ffprobe")
     if not ffmpeg or not ffprobe:
         raise ConfigurationError("FFmpeg and FFprobe must be installed on PATH; neither is downloaded automatically.")
@@ -146,12 +152,22 @@ def process_video(source: Path, destination: Path, backend: NativeBackend | Refe
         metadata = _probe(ffprobe, source, job / "source-probe.json", cancel)
         info = inspect_metadata(metadata, max_frames)
         spec_for_shape((min(chunk_frames, info.frames), info.height, info.width, 3), limits)
+        if upscaler is not None:
+            out_width, out_height = output_size(info.width, info.height, upscale_factor,
+                                                min(chunk_frames, info.frames))
+            manifest["upscale"] = {"backend": "FFmpeg sr_amf", "algorithm": "VideoSR1.1",
+                                    "factor": upscale_factor, "ffmpeg_sha256": upscaler.artifact.sha256,
+                                    "output_width": out_width, "output_height": out_height}
+        else:
+            out_width, out_height = info.width, info.height
+        output_raw_bytes = out_width * out_height * info.frames * 4
         manifest["video"] = {"width": info.width, "height": info.height, "fps": str(info.fps),
                              "frames": info.frames, "audio_streams": info.audio_streams,
+                             "output_width": out_width, "output_height": out_height,
                              "output_codec": "FFV1 RGB8", "subtitles_chapters_metadata": "not preserved"}
         # Raw source + result + lossless encoded output + publication temp reserve.
-        check_disk(root, info.raw_bytes * 5, limits.min_free_disk_bytes)
-        check_disk(destination.parent, info.raw_bytes * 2, limits.min_free_disk_bytes)
+        check_disk(root, info.raw_bytes * 2 + output_raw_bytes * 3, limits.min_free_disk_bytes)
+        check_disk(destination.parent, output_raw_bytes * 2, limits.min_free_disk_bytes)
         timestamp_file = job / "timestamps.json"
         run_process([ffprobe, "-v", "error", "-protocol_whitelist", "file,pipe", "-select_streams", "v:0",
                      "-show_frames", "-show_entries", "frame=best_effort_timestamp_time",
@@ -175,16 +191,28 @@ def process_video(source: Path, destination: Path, backend: NativeBackend | Refe
                 result = run_images(rgb, backend, work_root=job / "frame-jobs", mix=mix,
                                     limits=limits, cancel=cancel)
                 from .contracts import rgba8
-                rgba8(result.images).tofile(out)
-                manifest["chunks"].append({"first_frame": offset, "count": count,
+                if upscaler is not None:
+                    rgb8 = np.rint(result.images[..., :3] * 255).astype(np.uint8)
+                    scaled, amf_evidence = upscaler.scale_rgb8(rgb8, upscale_factor, job / "amf-jobs")
+                    output_rgba = np.empty((count, out_height, out_width, 4), dtype=np.uint8)
+                    output_rgba[..., :3] = scaled
+                    output_rgba[..., 3] = 255
+                else:
+                    output_rgba = rgba8(result.images)
+                    amf_evidence = None
+                output_rgba.tofile(out)
+                chunk = {"first_frame": offset, "count": count,
                     "manifest": str(result.report_path.relative_to(job)),
-                    "neural_execution_reported": result.report["evidence"]["neural_execution_reported"]})
+                    "neural_execution_reported": result.report["evidence"]["neural_execution_reported"]}
+                if amf_evidence is not None:
+                    chunk["amf"] = amf_evidence
+                manifest["chunks"].append(chunk)
                 if progress:
                     progress(offset + count, info.frames)
-        if raw_out.stat().st_size != info.raw_bytes:
+        if raw_out.stat().st_size != output_raw_bytes:
             raise EvidenceError("Processed raw size is inconsistent.")
         run_process([ffmpeg, "-nostdin", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgba",
-                     "-video_size", f"{info.width}x{info.height}", "-framerate", str(info.fps),
+                     "-video_size", f"{out_width}x{out_height}", "-framerate", str(info.fps),
                      "-i", str(raw_out), "-protocol_whitelist", "file,pipe", "-i", str(source),
                      "-map", "0:v:0", "-map", "1:a?", "-map_metadata", "-1", "-map_chapters", "-1",
                      "-c:v", "ffv1", "-level", "3", "-pix_fmt", "bgr0", "-c:a", "copy", str(staged)],
@@ -197,7 +225,7 @@ def process_video(source: Path, destination: Path, backend: NativeBackend | Refe
                      "-of", "json", str(staged)], cwd=job, log=output_timestamps, timeout=120, cancel=cancel)
         verify_timestamps(read_json(output_timestamps), final_info)
         if (final_info.width, final_info.height, final_info.frames, final_info.fps, final_info.audio_streams) != (
-                info.width, info.height, info.frames, info.fps, info.audio_streams):
+                out_width, out_height, info.frames, info.fps, info.audio_streams):
             raise EvidenceError("Encoded dimensions, frame count, FPS or audio count changed.")
         input_audio = _audio_hashes(ffmpeg, source, info.audio_streams, job, "input", cancel)
         output_audio = _audio_hashes(ffmpeg, staged, info.audio_streams, job, "output", cancel)

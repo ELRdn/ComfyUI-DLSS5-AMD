@@ -1,0 +1,52 @@
+{
+  "last_node_id": 1,
+  "last_link_id": 0,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "AMDNRVideoUpscaleFile",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        340,
+        180
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "lossless_upscaled_mkv_path",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 0
+        },
+        {
+          "name": "evidence_json",
+          "type": "STRING",
+          "links": [],
+          "slot_index": 1
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "AMDNRVideoUpscaleFile"
+      },
+      "widgets_values": [
+        "PUT_A_CLIP_IN_COMFY_INPUT",
+        300,
+        1,
+        2,
+        1.0
+      ],
+      "title": "One node: Video NR then AMD VideoSR1.1"
+    }
+  ],
+  "links": [],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

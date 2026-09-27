@@ -12,7 +12,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_NAMES = {
-    '__init__.py', '.gitignore', '.gitattributes', 'pyproject.toml', 'requirements.txt', 'upstream.lock.json',
+    '__init__.py', '.gitignore', '.gitattributes', 'pyproject.toml', 'requirements.txt', 'upstream.lock.json', 'runtime.lock.json',
     'README.md', 'README.jp.md', 'REPORT_ja.md', 'REPORT.html', 'ROADMAP.md', 'DELIVERY.md', 'LICENSE',
     'SECURITY.md', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md'}
 EVIDENCE_NAMES = {'test-summary.json', 'junit.xml', 'pytest.log', 'coverage.json',

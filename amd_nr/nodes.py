@@ -9,6 +9,7 @@ import uuid
 
 import numpy as np
 
+from .amf import AMFScaler, output_size
 from .backends import NativeBackend, ReferenceBackend
 from .config import ROOT, config_fingerprint, load_native_config
 from .contracts import Limits, spec_for_shape, validate_images, validate_mix
@@ -99,6 +100,40 @@ class AMDNRApply:
         result = run_images(array, NativeBackend(config), work_root=config.work_root,
                             mix=settings.mix, effect_mask=mask, cancel=_cancel)
         return (_tensor(result.images), _json(result.report))
+
+
+class AMDNRRenderUpscale:
+    CATEGORY = "AMD NR/Experimental"
+    RETURN_TYPES = ("IMAGE", "STRING")
+    RETURN_NAMES = ("upscaled_image", "evidence_json")
+    FUNCTION = "apply"
+    DESCRIPTION = "One-node color NR followed by AMD AMF VideoSR1.1. RGB SDR only; separate scaling stage, no temporal data."
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {"required": {"image": ("IMAGE",),
+                             "factor": ("INT", {"default": 2, "min": 2, "max": 8}),
+                             "mix": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05})}}
+
+    @classmethod
+    def IS_CHANGED(cls, **kwargs):
+        return config_fingerprint()
+
+    def apply(self, image, factor=2, mix=1.0):
+        array = _array(image)
+        if array.shape[-1] != 3:
+            raise ContractError("NR + AMF upscale accepts RGB only; composite alpha before this node.")
+        output_size(array.shape[2], array.shape[1], factor, array.shape[0])
+        mix = validate_mix(mix)
+        config = load_native_config()
+        scaler = AMFScaler(config, cancel=_cancel)
+        native = run_images(array, NativeBackend(config), work_root=config.work_root,
+                            mix=mix, cancel=_cancel)
+        rgb8 = np.rint(native.images * 255).astype(np.uint8)
+        scaled, amf_evidence = scaler.scale_rgb8(rgb8, factor, config.work_root)
+        report = {"native": native.report, "upscale": amf_evidence,
+                  "meaning": "NR ran at input dimensions; separate AMD AMF VideoSR1.1 produced output dimensions. No DLSS super-resolution claim."}
+        return (_tensor(scaled.astype(np.float32) / 255.0), _json(report))
 
 
 class AMDNRRoundtrip:
@@ -216,19 +251,13 @@ class AMDNRVideoFile:
             return "missing|" + config_fingerprint()
 
     def process(self, video, settings, max_frames=300, chunk_frames=1):
-        import folder_paths
         from .filesystem import read_json
         from .video import process_video
         if not isinstance(settings, NRSettings):
             raise ContractError("Connect AMD NR Settings.")
-        root = Path(folder_paths.get_input_directory()).resolve()
-        # No directories, URL, executable path, or arbitrary filesystem source from a workflow.
-        if not isinstance(video, str) or Path(video).name != video or "/" in video or "\\" in video:
-            raise ContractError("Select one filename from the ComfyUI input folder.")
-        source = (root / video).resolve()
-        if source.parent != root:
-            raise ContractError("Video source must remain in the ComfyUI input folder.")
+        source = _selected_input_video(video)
         config = load_native_config()
+        import folder_paths
         destination = Path(folder_paths.get_output_directory()) / "amd_nr" / f"AMDNR_{uuid.uuid4().hex}.mkv"
         report_path = process_video(source, destination, NativeBackend(config), work_root=config.work_root,
                                     mix=settings.mix, max_frames=max_frames, chunk_frames=chunk_frames, cancel=_cancel)
@@ -236,14 +265,57 @@ class AMDNRVideoFile:
         return {"ui": {"text": [str(destination)]}, "result": (str(destination), text)}
 
 
+def _selected_input_video(video: str) -> Path:
+    import folder_paths
+    root = Path(folder_paths.get_input_directory()).resolve()
+    if not isinstance(video, str) or Path(video).name != video or "/" in video or "\\" in video:
+        raise ContractError("Select one filename from the ComfyUI input folder.")
+    source = (root / video).resolve()
+    if source.parent != root:
+        raise ContractError("Video source must remain in the ComfyUI input folder.")
+    return source
+
+
+class AMDNRVideoUpscaleFile(AMDNRVideoFile):
+    CATEGORY = "AMD NR/Experimental"
+    RETURN_NAMES = ("lossless_upscaled_mkv_path", "evidence_json")
+    FUNCTION = "process_upscale"
+    DESCRIPTION = "One-node short SDR/CFR video NR then AMD AMF VideoSR1.1; lossless MKV, copied audio. No temporal NR."
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        required = dict(super().INPUT_TYPES()["required"])
+        required.pop("settings")
+        required.update({"factor": ("INT", {"default": 2, "min": 2, "max": 8}),
+                         "mix": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "step": 0.05})})
+        return {"required": required}
+
+    def process_upscale(self, video, factor=2, mix=1.0, max_frames=300, chunk_frames=1):
+        import folder_paths
+        from .filesystem import read_json
+        from .video import process_video
+        source = _selected_input_video(video)
+        config = load_native_config()
+        scaler = AMFScaler(config, cancel=_cancel)
+        destination = Path(folder_paths.get_output_directory()) / "amd_nr" / f"AMDNR_AMF_{uuid.uuid4().hex}.mkv"
+        report_path = process_video(source, destination, NativeBackend(config), work_root=config.work_root,
+                                    mix=mix, max_frames=max_frames, chunk_frames=chunk_frames,
+                                    upscaler=scaler, upscale_factor=factor, cancel=_cancel)
+        text = _json(read_json(report_path))
+        return {"ui": {"text": [str(destination)]}, "result": (str(destination), text)}
+
+
 NODE_CLASS_MAPPINGS = {cls.__name__: cls for cls in
-    (AMDNRSettings, AMDNRApply, AMDNRRoundtrip, AMDNRResize, AMDNRCompare, AMDNRDiagnostics, AMDNRVideoFile)}
+    (AMDNRSettings, AMDNRApply, AMDNRRenderUpscale, AMDNRRoundtrip, AMDNRResize,
+     AMDNRCompare, AMDNRDiagnostics, AMDNRVideoFile, AMDNRVideoUpscaleFile)}
 NODE_DISPLAY_NAME_MAPPINGS = {
     "AMDNRSettings": "AMD NR · Settings (experimental)",
     "AMDNRApply": "AMD NR · Native Render (experimental)",
+    "AMDNRRenderUpscale": "AMD NR · Render + AMF VideoSR1.1 (image)",
     "AMDNRRoundtrip": "AMD NR · CPU Roundtrip — NOT DLSS",
     "AMDNRResize": "AMD NR · Bicubic Resize — NOT DLSS",
     "AMDNRCompare": "AMD NR · A/B Difference (not a quality score)",
     "AMDNRDiagnostics": "AMD NR · Environment Report",
     "AMDNRVideoFile": "AMD NR · Video File → Lossless MKV (experimental)",
+    "AMDNRVideoUpscaleFile": "AMD NR · Video + AMF VideoSR1.1 → Lossless MKV",
 }
