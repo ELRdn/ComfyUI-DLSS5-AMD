@@ -2,6 +2,8 @@
 
 [English](README.md) | [日本語](README.jp.md)
 
+> **Setup recommendation:** Setup has several manual steps. We strongly recommend asking Codex or another coding agent to follow the [personal-use setup guide](docs/PERSONAL_SETUP.md) on your PC, run its checks, and help resolve errors. You must provide your own legitimately obtained `nvngx_dlssnr.dll` and review the external runtime license.
+
 **Experimental v0.1.0a1 · Validation updated 2026-09-27**
 
 An experimental ComfyUI custom node for Windows / RX 9070 XT that connects to a locally built external AMD neural-rendering host. **Enabled neural processing was verified locally on 2026-09-26; integrated image and three-frame video upscaling through AMD AMF VideoSR1.1 was verified through the ComfyUI API on 2026-09-27.** This repository does not include DLSS weights, DLLs, or a prebuilt GPU host. New installations, natural-image quality, and long videos have not been validated.
