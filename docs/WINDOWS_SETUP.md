@@ -1,5 +1,7 @@
 # Windows / RX 9070 XT 導入と最初の検証
 
+Git clone 後に個人利用のセットアップを一括で進める場合は、[配布元リンクと ZIP 対応手順](PERSONAL_SETUP.md)を先に参照してください。この文書は各工程を手動で確認するための詳細手順です。ROCm の導入だけでは作者の NR ランタイムや AMF 対応 FFmpeg は入りません。
+
 **確認範囲:** 2026-09-26 に Windows ビルド、RX 9070 XT の 640×360 SDR ニューラル処理、ComfyUI API での PNG 保存を確認しました。通常の待機設定での失敗と、ローカル検証後に有効化した fast-isolated 設定は [実機記録](RX9070XT_VALIDATION_2026-09-26.md) に記載しています。ドライバー、Python、PyTorch を自動更新する手順ではありません。
 
 ## 1. フォルダーと Python を確認

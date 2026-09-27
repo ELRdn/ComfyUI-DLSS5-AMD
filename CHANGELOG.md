@@ -4,6 +4,8 @@
 
 Added a personal-use setup path for a fresh Git clone. A user-supplied ZIP can provide exactly one `nvngx_dlssnr.dll`; only that entry is temporarily extracted, inspected, and removed after installation. `scripts/setup_personal.ps1` verifies or fetches the pinned host, builds it, selects a consistent RX 9070 XT HIP index, downloads the pinned author's installer, and writes a new private configuration. Optional AMF FFmpeg configuration supports the integrated upscaling nodes. The runtime and NVIDIA DLL are still not redistributed, and the third-party runtime's license remains personal/non-commercial.
 
+The setup guide now links directly to the original host/runtime sources, the FFmpeg download pages, and the external AMF node used by the old comparison workflow. It distinguishes ROCm, the separate AMD NR runtime, and the AMF VideoSR1.1 stage; the integrated 06/07 workflows do not require the external AMF custom node.
+
 Added `AMDNRRenderUpscale` and `AMDNRVideoUpscaleFile` so each ComfyUI workflow needs one processing node for native NR followed by AMD AMF VideoSR1.1. The AMF-enabled FFmpeg executable is SHA-256-pinned in private server configuration; no executable path or CPU fallback is exposed to workflows. Video output remains lossless FFV1/MKV with copied, payload-checked audio.
 
 On RX 9070 XT, the integrated image node saved a 640×360→1280×720 PNG and the integrated video node saved a three-frame, 24 fps 640×360→1280×720 MKV with matching audio payloads. The new UI/API workflows are 06 and 07. This verifies short execution, not natural-image quality, sustained video, temporal NR, or game integration.

@@ -17,8 +17,8 @@
     },
     {
       "path": "CHANGELOG.md",
-      "bytes": 3318,
-      "sha256": "788260a56467acf0c27832f8c8ad5aad5f9fad2ec6e833f447d1cd3db094b815"
+      "bytes": 3640,
+      "sha256": "8702eee4c7935317498ed443bb3866c92a82c02c3618e87a7fdd1d831c2649e4"
     },
     {
       "path": "DELIVERY.md",
@@ -32,13 +32,13 @@
     },
     {
       "path": "README.jp.md",
-      "bytes": 10546,
-      "sha256": "52e84246842b7dc01e3232bae6688e4042ce17d83a8590e9a26d1c90037fcec4"
+      "bytes": 10996,
+      "sha256": "64027fb4b70d57134db74ec9adf35b9f8e881cb9bec42dae33b2c801a3718250"
     },
     {
       "path": "README.md",
-      "bytes": 9782,
-      "sha256": "a4c73a97065c264bf620a72e827010ac498320a8963706cac5d5d1c1a1d12f57"
+      "bytes": 10230,
+      "sha256": "5c79c27c9dd0902fb4d862ec0f794b98289b4fbd8aaaac40de4eb2d381a4aa4d"
     },
     {
       "path": "REPORT.html",
@@ -167,8 +167,8 @@
     },
     {
       "path": "docs/PERSONAL_SETUP.md",
-      "bytes": 4952,
-      "sha256": "496f88eed5a5fb978782abb83a6869e07f5768a60665319945bd2115738e11cc"
+      "bytes": 7856,
+      "sha256": "0a9929d15fd1ff9e44f6c73cd5b64bce870cc551c5da7bc86eb97c95bbe590ba"
     },
     {
       "path": "docs/RUNTIME_SETUP_ja.md",
@@ -197,8 +197,8 @@
     },
     {
       "path": "docs/WINDOWS_SETUP.md",
-      "bytes": 13871,
-      "sha256": "76bff141f184db273ecb9368b371a97dc3058763c20e0111ae697fdb5f5eae1a"
+      "bytes": 14225,
+      "sha256": "faf094e3b6e978c5e077ea07403f46bb70de933ed4b3e2ab7ac0c29de258a93c"
     },
     {
       "path": "docs/WORKFLOWS.md",

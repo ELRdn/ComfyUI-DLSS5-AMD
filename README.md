@@ -74,6 +74,8 @@ Node-method tests require an existing PyTorch installation. Check whether the te
 
 For a personal-use Windows install from a clone, use the [guided ZIP setup](docs/PERSONAL_SETUP.md). It accepts your own legitimately obtained ZIP containing one `nvngx_dlssnr.dll` (or the DLL itself), fetches the pinned public installer, builds the pinned host, verifies generated files, and writes a private ComfyUI configuration. An AMF-capable FFmpeg executable can be supplied for the integrated image/video upscale nodes. The runtime's license excludes commercial use and bundling; a paid customer distribution needs separate permission from its author.
 
+ROCm, the author's AMD NR runtime, and AMF VideoSR1.1 are separate components. Installing ROCm does not supply the NR proxy, weights, or NVIDIA DLL. The current 06/07 workflows already call FFmpeg's AMF filter inside this custom node; the external ComfyUI AMD Video Upscaler is only needed for the older comparison workflow 05. The [setup guide](docs/PERSONAL_SETUP.md) links to the original sources and explains which files the user must supply.
+
 Follow the [Windows setup guide](docs/WINDOWS_SETUP.md) (Japanese) to fetch, inspect, and build the external host at a pinned revision, then configure a local runtime you are authorized to use. Review the external host code before running it.
 
 ```powershell

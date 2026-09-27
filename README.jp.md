@@ -74,6 +74,8 @@ python scripts/collect_evidence.py
 
 個人利用で Git clone から導入する場合は [ZIP 対応セットアップ](docs/PERSONAL_SETUP.md) を使えます。正当に入手した `nvngx_dlssnr.dll` を含む ZIP（または DLL 単体）を指定すると、固定した作者公開セットアップの取得、ホストのビルド、生成物検証、ComfyUI の非公開設定まで順に実行します。統合画像・動画拡大には AMF 対応 FFmpeg も指定できます。外部ランタイムは非商用・再配布禁止のため、有料の一般客向け提供には作者から別途許諾が必要です。
 
+ROCm、作者の AMD 向け NR ランタイム、AMF VideoSR1.1 は別物です。ROCm だけでは NR 用のプロキシ・重み・NVIDIA DLL はそろいません。06/07 はこのカスタムノード内で FFmpeg の AMF フィルターを呼ぶため、外部の ComfyUI AMD Video Upscaler ノードは不要です。配布元リンクと本人が用意するファイルは[導入ガイド](docs/PERSONAL_SETUP.md)にまとめています。
+
 [Windows 手順](docs/WINDOWS_SETUP.md)に従い、固定リビジョンの外部ホストを取得・確認・ビルドし、正当な利用権限のあるローカルランタイムを設定します。外部ホストのコードも実行前に確認してください。
 
 ```powershell
